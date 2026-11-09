@@ -20,7 +20,7 @@ def write(rel, text, binary=False, tree=None):
     if binary:
         path.write_bytes(text)
     else:
-        path.write_text(text)
+        path.write_text(text, encoding="utf-8")
 
 
 def fp(project, *names):
@@ -374,7 +374,7 @@ scenarios = {
     "partial": xcresult([case(U, "RulesTests", "testA()", "RulesTests/testA()")]),
 }
 for name, data in scenarios.items():
-    (RESULTS / f"{name}.json").write_text(json.dumps(data, indent=1, sort_keys=True) + "\n")
+    (RESULTS / f"{name}.json").write_text(json.dumps(data, indent=1, sort_keys=True) + "\n", encoding="utf-8")
 
 XU = OUT / "xunit"
 XU.mkdir(parents=True, exist_ok=True)

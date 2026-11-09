@@ -392,7 +392,7 @@ class FakeRuntime:
         self.load_failures = set()   # test files (as the report prints them) that fail to load
         self.reports_written = []
         self.ticks = 0
-        self.devices = json.loads((FIXTURES / "simctl_devices.json").read_text())
+        self.devices = json.loads((FIXTURES / "simctl_devices.json").read_text(encoding="utf-8"))
         # the SE is not in the shared fixture file
         next(iter(self.devices["devices"].values())).append({
             "name": DEVICES["se"][0], "udid": DEVICES["se"][1], "isAvailable": True, "state": "Shutdown",
@@ -463,10 +463,10 @@ class FakeRuntime:
         elif action == "auto":
             data = xcresult_json(self._auto_cases(cmd))
         else:
-            data = json.loads((FIXTURES / "results" / f"{action}.json").read_text())
+            data = json.loads((FIXTURES / "results" / f"{action}.json").read_text(encoding="utf-8"))
         bundle.mkdir(parents=True)
-        (bundle / "fixture.json").write_text(json.dumps(data))
-        (bundle / "Info.plist").write_text("<plist/>")
+        (bundle / "fixture.json").write_text(json.dumps(data), encoding="utf-8")
+        (bundle / "Info.plist").write_text("<plist/>", encoding="utf-8")
         os.utime(bundle / "Info.plist", (self.now_value.timestamp(),) * 2)
         self.bundles_written.append(bundle)
         failed = any(n.get("result") == "Failed" for n in self._walk_cases(data))
@@ -554,7 +554,7 @@ class FakeRuntime:
             grouped = {"empty.xml": []}
         for name, members in sorted(grouped.items()):
             path = folder / name
-            path.write_text("<testsuites><oops" if action == "!malformed" else junit_xml(framework, members))
+            path.write_text("<testsuites><oops" if action == "!malformed" else junit_xml(framework, members), encoding="utf-8")
             self.ticks += 1
             stamp = self.now_value.timestamp() + 60 * self.ticks
             os.utime(path, (stamp, stamp))
@@ -568,7 +568,7 @@ class FakeRuntime:
         fixture = pathlib.Path(arg_after(cmd, "--path")) / "fixture.json"
         if not fixture.exists():
             return self._done(cmd, 1, "", f"no result bundle at {fixture.parent}")
-        return self._done(cmd, 0, fixture.read_text())
+        return self._done(cmd, 0, fixture.read_text(encoding="utf-8"))
 
     def _swift(self, cmd):
         if not self.swift:
@@ -582,7 +582,7 @@ class FakeRuntime:
                                (FIXTURES / "xunit" / f"{name}.xunit-swift-testing.xml", sibling)):
             if source.exists():
                 shutil.copy(source, target)
-                failed = failed or "<failure" in source.read_text()
+                failed = failed or "<failure" in source.read_text(encoding="utf-8")
         return self._done(cmd, 1 if failed else 0, "Executed tests (fake)\n")
 
     def _git(self, cmd):
@@ -681,7 +681,7 @@ class Project:
         self.state_path = root / "docs" / ".flows-state.json"
 
     def set_doc(self, text):
-        self.doc_path.write_text(text)
+        self.doc_path.write_text(text, encoding="utf-8")
 
     def set_state(self, state):
         if state is None:
@@ -689,13 +689,13 @@ class Project:
                 self.state_path.unlink()
         else:
             state = state_in_language(state, LANG["code"])
-            self.state_path.write_text(json.dumps(state, ensure_ascii=False, indent=1, sort_keys=True))
+            self.state_path.write_text(json.dumps(state, ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8")
 
     def doc(self):
-        return self.doc_path.read_text()
+        return self.doc_path.read_text(encoding="utf-8")
 
     def state(self):
-        return json.loads(self.state_path.read_text())
+        return json.loads(self.state_path.read_text(encoding="utf-8"))
 
     def snapshot(self):
         return (self.doc_path.read_bytes(),
@@ -703,13 +703,13 @@ class Project:
 
     def config(self, **changes):
         path = self.root / "scripts" / "flows.json"
-        data = json.loads(path.read_text())
+        data = json.loads(path.read_text(encoding="utf-8"))
         for key, value in changes.items():
             if value is DEL:
                 data.pop(key, None)
             else:
                 data[key] = value
-        path.write_text(json.dumps(data, indent=2))
+        path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
     def path(self, name):
         found = sorted(p for p in self.root.rglob(name) if ".build" not in p.parts)
@@ -722,7 +722,7 @@ class Project:
     def write(self, rel, text, when=T_SRC):
         path = self.root / rel
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(text) if isinstance(text, str) else path.write_bytes(text)
+        path.write_text(text, encoding="utf-8") if isinstance(text, str) else path.write_bytes(text)
         os.utime(path, (when, when))
         return path
 
@@ -765,17 +765,17 @@ class EngineCase(unittest.TestCase):
         shutil.copytree(FIXTURES / "project_tree", base)
         # decoys the index must skip: a build folder's copy and a dependency's copy (made here, never shipped)
         (base / "DemoMac/Packages/DemoCore/.build/debug").mkdir(parents=True)
-        (base / "DemoMac/Packages/DemoCore/.build/debug/Core.swift").write_text("// decoy: a build folder's copy\n")
+        (base / "DemoMac/Packages/DemoCore/.build/debug/Core.swift").write_text("// decoy: a build folder's copy\n", encoding="utf-8")
         (base / "DemoSystem/apps/api/node_modules/dep").mkdir(parents=True)
-        (base / "DemoSystem/apps/api/node_modules/dep/index.ts").write_text("// decoy: a dependency's copy\n")
+        (base / "DemoSystem/apps/api/node_modules/dep/index.ts").write_text("// decoy: a dependency's copy\n", encoding="utf-8")
         if self.language != "en":
             for found in base.rglob("docs/FLOWS*.md"):
-                found.write_text(to_language(found.read_text(), self.language))
+                found.write_text(to_language(found.read_text(encoding="utf-8"), self.language), encoding="utf-8")
                 if found.name == "FLOWS.md":
                     found.rename(found.with_name(MAP_NAMES[self.language]))
             for found in base.rglob("docs/.flows-state.json"):
-                found.write_text(json.dumps(state_in_language(json.loads(found.read_text()), self.language),
-                                            ensure_ascii=False, indent=1, sort_keys=True))
+                found.write_text(json.dumps(state_in_language(json.loads(found.read_text(encoding="utf-8")), self.language),
+                                            ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8")
         for path in base.rglob("*"):
             if path.is_file():
                 os.utime(path, (T_SRC, T_SRC))
@@ -794,8 +794,8 @@ class EngineCase(unittest.TestCase):
         """A result bundle on disk for --reuse: fixture.json plus an Info.plist with the given mtime."""
         path = self.tmp / name
         path.mkdir(parents=True)
-        (path / "fixture.json").write_text(json.dumps(xcresult_json(cases)))
-        (path / "Info.plist").write_text("<plist/>")
+        (path / "fixture.json").write_text(json.dumps(xcresult_json(cases)), encoding="utf-8")
+        (path / "Info.plist").write_text("<plist/>", encoding="utf-8")
         if when:
             os.utime(path / "Info.plist", (when, when))
         return path

@@ -210,7 +210,7 @@ class Runtime:
     def run(self, cmd, cwd=None, env=None):
         try:
             return subprocess.run([str(c) for c in cmd], cwd=None if cwd is None else str(cwd), env=env,
-                                  capture_output=True, text=True)
+                                  capture_output=True, text=True, encoding="utf-8", errors="replace")
         except OSError as error:
             return subprocess.CompletedProcess(cmd, 127, "", str(error))
 

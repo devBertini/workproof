@@ -109,7 +109,7 @@ class HarnessTests(unittest.TestCase):
         path = self.tmp / "b.xcresult"
         proc = fake.run(["xcodebuild", "test", "-resultBundlePath", str(path), "-only-testing:DemoTests/RulesTests",
                          "-only-testing:DemoUITests/HomeUITests/testSaves"])
-        names = sorted(n["nodeIdentifier"] for n in fake._walk_cases(json.loads((path / "fixture.json").read_text())))
+        names = sorted(n["nodeIdentifier"] for n in fake._walk_cases(json.loads((path / "fixture.json").read_text(encoding="utf-8"))))
         self.assertEqual(names, ["HomeUITests/testSaves()", "RulesTests/testA()", "RulesTests/testB()"])
         self.assertEqual(proc.returncode, 65, "xcodebuild exits 65 with a bundle when a case failed")
 
@@ -134,8 +134,8 @@ class HarnessTests(unittest.TestCase):
     def test_fixture_fingerprints_match_their_sources(self):
         """The static state's fingerprints are the sha1 of the files the static map's Entrada cells cite."""
         project = FIXTURES / "project_tree" / "Demo"
-        state = json.loads((project / "docs" / ".flows-state.json").read_text())
-        text = (project / "docs" / "FLOWS.md").read_text()
+        state = json.loads((project / "docs" / ".flows-state.json").read_text(encoding="utf-8"))
+        text = (project / "docs" / "FLOWS.md").read_text(encoding="utf-8")
         checked = 0
         for fid, rec in state["flows"].items():
             fp = rec.get("source_fingerprint")
@@ -155,7 +155,7 @@ class HarnessTests(unittest.TestCase):
                   "unit_all_pass", "unit_one_failed", "unit_renamed", "unit_skipped", "wrong_suite"]
         self.assertEqual(names, wanted)
         for name in names:
-            data = json.loads((FIXTURES / "results" / f"{name}.json").read_text())
+            data = json.loads((FIXTURES / "results" / f"{name}.json").read_text(encoding="utf-8"))
             for plan in data["testNodes"]:
                 self.assertEqual(plan["nodeType"], "Test Plan", name)
                 for bundle in plan.get("children", []):
@@ -166,11 +166,11 @@ class HarnessTests(unittest.TestCase):
                             self.assertEqual(case["nodeType"], "Test Case", name)
                             self.assertIn("/", case["nodeIdentifier"], name)
                             self.assertIn(case["result"], ("Passed", "Failed", "Skipped"), name)
-        full = json.loads((FIXTURES / "results" / "unit_all_pass.json").read_text())
+        full = json.loads((FIXTURES / "results" / "unit_all_pass.json").read_text(encoding="utf-8"))
         got = sorted((n["nodeIdentifier"], n["name"], n["result"]) for n in FakeRuntime._walk_cases(full))
         self.assertEqual(got, sorted((c["ident"], c["name"], c["result"]) for c in DEMO_UNIT),
                          "unit_all_pass.json drifted from the master list the auto bundles use")
-        empty = json.loads((FIXTURES / "results" / "empty.json").read_text())
+        empty = json.loads((FIXTURES / "results" / "empty.json").read_text(encoding="utf-8"))
         self.assertEqual(list(FakeRuntime._walk_cases(empty)), [], "empty.json must hold no test case")
 
     def test_the_portuguese_fixture_is_the_english_one_translated(self):
@@ -178,10 +178,10 @@ class HarnessTests(unittest.TestCase):
         fingerprints, the Portuguese words (the device status stored with its accent)."""
         english = FIXTURES / "project_tree" / "Demo" / "docs"
         portuguese = FIXTURES / "pt_tree" / "Demo" / "docs"
-        self.assertEqual((portuguese / "FLUXOS.md").read_text(),
-                         to_language((english / "FLOWS.md").read_text(), "pt-BR"))
-        self.assertEqual(json.loads((portuguese / ".flows-state.json").read_text()),
-                         state_in_language(json.loads((english / ".flows-state.json").read_text()), "pt-BR"))
+        self.assertEqual((portuguese / "FLUXOS.md").read_text(encoding="utf-8"),
+                         to_language((english / "FLOWS.md").read_text(encoding="utf-8"), "pt-BR"))
+        self.assertEqual(json.loads((portuguese / ".flows-state.json").read_text(encoding="utf-8")),
+                         state_in_language(json.loads((english / ".flows-state.json").read_text(encoding="utf-8")), "pt-BR"))
         self.assertIn("só em aparelho", (portuguese / ".flows-state.json").read_text(encoding="utf-8"))
 
 
@@ -1111,7 +1111,7 @@ class ModeTests(EngineCase):
         q = self.project(doc=doc_text(row("F-ONE-01", "Rules", "", "RulesTests/testA()")), state=make_state())
         existing = self.tmp / "mine.xcresult"
         existing.mkdir()
-        (existing / "marker.txt").write_text("keep")
+        (existing / "marker.txt").write_text("keep", encoding="utf-8")
         r = self.run_engine(q, "--only-stale", "--result-path", str(existing))
         self.assertEqual(self.fake.xcode_calls(), [], "no xcodebuild call may be made on a path that exists")
         self.assertTrue((existing / "marker.txt").exists(), "and the existing bundle is left alone")
@@ -1290,7 +1290,7 @@ struct EngineRulesTests {
     def test_malformed_flow_id_stops_before_writing(self):
         """Status rule: the flow ID pattern."""
         p = self.project()
-        p.set_doc((FIXTURES / "project_tree/Demo/docs/FLOWS-a11y.md").read_text())
+        p.set_doc((FIXTURES / "project_tree/Demo/docs/FLOWS-a11y.md").read_text(encoding="utf-8"))
         before = p.snapshot()
         r = self.run_engine(p, "--from-cache")
         self.assertEqual(r.code, 2, r.text)
@@ -1355,7 +1355,7 @@ struct EngineRulesTests {
         self.assertNotEqual(hits[0][0], hits[0][1])
         for label, content in (("unreadable", "{not json"), ("version 3", json.dumps(make_state() | {"version": 3}))):
             q = self.project(doc=doc, state=make_state())
-            q.state_path.write_text(content)
+            q.state_path.write_text(content, encoding="utf-8")
             before = q.snapshot()
             r = self.run_engine(q, "--from-cache")
             self.assertEqual(r.code, 2, f"{label} state must stop the engine:\n{r.text}")
@@ -1368,7 +1368,7 @@ struct EngineRulesTests {
     def test_duplicate_flow_id_aborts_before_writing(self):
         """Extra: duplicate IDs."""
         p = self.project()
-        p.set_doc((FIXTURES / "project_tree/Demo/docs/FLOWS-dupe.md").read_text())
+        p.set_doc((FIXTURES / "project_tree/Demo/docs/FLOWS-dupe.md").read_text(encoding="utf-8"))
         before = p.snapshot()
         r = self.run_engine(p, "--from-cache")
         self.assertNotEqual(r.code, 0, r.text)
@@ -2000,8 +2000,8 @@ mod tests {
             for name in ("src/a/mod.rs", "src/a/b.rs", "src/lib.rs", "src/main.rs", "src/bin/x.rs", "tests/one.rs",
                          "tests/two/main.rs", "tests/two/helper.rs"):
                 (crate / name).parent.mkdir(parents=True, exist_ok=True)
-                (crate / name).write_text("")
-            (crate / "Cargo.toml").write_text('[package]\nname = "alfa-core"\n')
+                (crate / name).write_text("", encoding="utf-8")
+            (crate / "Cargo.toml").write_text('[package]\nname = "alfa-core"\n', encoding="utf-8")
             place = lambda name: check_flows.rust_binary(crate / name, root)
             self.assertEqual(place("src/lib.rs"), ("alfa-core", ""))
             self.assertEqual(place("src/a/mod.rs"), ("alfa-core", "a"))
@@ -2045,7 +2045,7 @@ class JUnitReportTests(unittest.TestCase):
 <testcase name="t › three" classname="a.e2e.ts"/><testcase name="t › three" classname="a.e2e.ts"><skipped/></testcase>
 <testcase name="t › four" classname="a.e2e.ts"><skipped/></testcase><testcase name="t › four" classname="a.e2e.ts"><skipped/></testcase>
 <testcase name="t › flaky" classname="a.e2e.ts"><flakyFailure message="first try"/></testcase>
-<testcase name="" classname="a.e2e.ts"/></testsuite></testsuites>''')
+<testcase name="" classname="a.e2e.ts"/></testsuite></testsuites>''', encoding="utf-8")
         by_path, _, _ = check_flows.parse_junit(path, "e2e", "2026-03-01", "R")
         self.assertEqual({k.split("/", 1)[1]: v["result"] for k, v in by_path.items()},
                          {"t > one": "Failed", "t > two": "Failed", "t > three": "Passed", "t > four": "Skipped",
@@ -2224,7 +2224,7 @@ class DockerRunTests(EngineCase):
         self.assertEqual(names, ["integration.xml", "unit.xml"], "only the api runner's two reports in batch 1")
         self.assertEqual(sorted(k for k in p.state()["raw"]["by_path"] if k.startswith("crypto")), sorted([CRY_1, CRY_2]),
                          "Vitest reports the other cases of the file <skipped/>, but only the cited ones are stored")
-        archived = (self.results_folders(p)[0] / "api" / "unit.xml").read_text()
+        archived = (self.results_folders(p)[0] / "api" / "unit.xml").read_text(encoding="utf-8")
         self.assertIn("<skipped/>", archived, "the archive holds the report as Vitest wrote it")
         self.assertNotIn("Skipped", {e["result"] for e in p.state()["raw"]["by_path"].values()})
 
@@ -2268,7 +2268,7 @@ class DockerRunTests(EngineCase):
         r = self.run_engine(p, "--only-stale", docker=["auto"])
         self.assertEqual(r.code, 0, r.text)
         archive = self.results_folders(p)[0]
-        written = (archive / "api" / "unit.xml").read_text()
+        written = (archive / "api" / "unit.xml").read_text(encoding="utf-8")
         self.assertEqual(written.count("<skipped/>"), written.count("<testcase") - 1,
                          "the fake models Vitest: every test -t did not select is reported <skipped/>")
         raw = p.state()["raw"]["by_path"]
@@ -2292,13 +2292,13 @@ class DockerRunTests(EngineCase):
         # a report in a folder below the runner's one is still covered by the runner's list
         nested = self.tmp / "nested" / "api" / "sub"
         nested.mkdir(parents=True)
-        (nested.parent / "narrowed.json").write_text(json.dumps({"selected": [CRY_1]}))
-        (nested / "x.xml").write_text(junit_xml("vitest", SYSTEM_API[:1] + SYSTEM_API[5:6]))
+        (nested.parent / "narrowed.json").write_text(json.dumps({"selected": [CRY_1]}), encoding="utf-8")
+        (nested / "x.xml").write_text(junit_xml("vitest", SYSTEM_API[:1] + SYSTEM_API[5:6]), encoding="utf-8")
         t = self.project("DemoSystem", doc=doc, state=make_state())
         self.run_engine(t, "--reuse", str(nested.parent.parent))
         self.assertEqual(sorted(t.state()["raw"]["by_path"]), [CRY_1])
         # a list that cannot be read is no list: the whole report is read
-        (nested.parent / "narrowed.json").write_text("{not json")
+        (nested.parent / "narrowed.json").write_text("{not json", encoding="utf-8")
         u = self.project("DemoSystem", doc=doc, state=make_state())
         self.run_engine(u, "--reuse", str(nested.parent.parent))
         self.assertEqual(sorted(u.state()["raw"]["by_path"]), sorted([CRY_1, CRY_TOP]))
@@ -2322,7 +2322,7 @@ class DockerRunTests(EngineCase):
         folder.mkdir(parents=True)
         for name in ("integration.xml", "unit.xml"):
             (folder / name).write_text(junit_xml("vitest", [c for c in master if c["report"] == name and c["file"] == U_SPEC
-                                                            and c["chain"] in (first, second)]))
+                                                            and c["chain"] in (first, second)]), encoding="utf-8")
         self.run_engine(q, "--reuse", str(folder.parent))
         self.assertStatus(q, "F-CRY-01", BROKEN, "--reuse combines the files the same way")
         self.assertStatus(q, "F-CRY-02", BROKEN, "")
@@ -2371,7 +2371,7 @@ describe('Button', () => {
         self.assertIn("test no longer in the source", self.note(p, "F-BTN-02"))
 
     def test_a_runner_without_narrowing_or_with_a_file_filter_runs_as_configured(self):
-        runners = json.loads((FIXTURES / "project_tree/DemoSystem/scripts/flows.json").read_text())["runners"]
+        runners = json.loads((FIXTURES / "project_tree/DemoSystem/scripts/flows.json").read_text(encoding="utf-8"))["runners"]
         runners[0]["only_args"] = []                                        # api cannot narrow
         runners[1]["only_args"] = ["{files}", "-t", "{pattern}"]
         p = self.project("DemoSystem", doc=system_doc(), state=make_state(), config={"runners": runners})
@@ -2585,9 +2585,9 @@ describe('Button', () => {
                          state=make_state())
         folder = self.tmp / "archive"
         (folder / "api").mkdir(parents=True)
-        (folder / "api" / "unit.xml").write_text(junit_xml("vitest", SYSTEM_API[:2]))
+        (folder / "api" / "unit.xml").write_text(junit_xml("vitest", SYSTEM_API[:2]), encoding="utf-8")
         (folder / "web").mkdir()
-        (folder / "web" / "junit.xml").write_text(junit_xml("vitest", SYSTEM_WEB))
+        (folder / "web" / "junit.xml").write_text(junit_xml("vitest", SYSTEM_WEB), encoding="utf-8")
         os.utime(folder / "api" / "unit.xml", (ts(2026, 2, 20), ts(2026, 2, 20)))
         r = self.run_engine(p, "--reuse", str(folder))
         self.assertEqual(r.code, 0, r.text)
@@ -2602,7 +2602,7 @@ describe('Button', () => {
         # a single file, the runner found from the test file stem
         q = self.project("DemoSystem", doc=system_doc(), state=make_state())
         one = self.tmp / "web.xml"
-        one.write_text(junit_xml("vitest", SYSTEM_WEB))
+        one.write_text(junit_xml("vitest", SYSTEM_WEB), encoding="utf-8")
         self.run_engine(q, "--reuse", str(one))
         self.assertStatus(q, "F-CAT-01", OK, "a file outside a runner's folder: the stem says which runner")
         self.assertEqual(q.state()["flows"]["F-CAT-01"]["proofs"], [CAT_1])
@@ -2621,10 +2621,10 @@ describe('Button', () => {
         doc = system_doc(row("F-BOTH-01", "Both runners", "crypto.service.ts", CRY_1 + "<br>" + CAT_1))
         api = self.tmp / "api-archive" / "api"
         api.mkdir(parents=True)
-        (api / "unit.xml").write_text(junit_xml("vitest", SYSTEM_API[:2]))
+        (api / "unit.xml").write_text(junit_xml("vitest", SYSTEM_API[:2]), encoding="utf-8")
         os.utime(api / "unit.xml", (ts(2026, 2, 10), ts(2026, 2, 10)))
         web = self.tmp / "web.xml"
-        web.write_text(junit_xml("vitest", SYSTEM_WEB))
+        web.write_text(junit_xml("vitest", SYSTEM_WEB), encoding="utf-8")
         os.utime(web, (ts(2026, 2, 20), ts(2026, 2, 20)))
         p = self.project("DemoSystem", doc=doc, state=make_state())
         r = self.run_engine(p, "--reuse", str(api.parent), str(web))
@@ -2638,7 +2638,7 @@ describe('Button', () => {
         for text in (str(api.parent), "results dated 2026-02-10", str(web), "results dated 2026-02-20"):
             self.assertIn(text, done[0], "the printed line names every target and its date")
         failing = self.tmp / "failing.xml"
-        failing.write_text(junit_xml("vitest", [dict(SYSTEM_WEB[0], result="Failed")]))
+        failing.write_text(junit_xml("vitest", [dict(SYSTEM_WEB[0], result="Failed")]), encoding="utf-8")
         q = self.project("DemoSystem", doc=doc, state=make_state())
         self.assertEqual(self.run_engine(q, "--reuse", str(api.parent), str(failing)).code, 1)
         self.assertStatus(q, "F-BOTH-01", BROKEN, "its proof in the second target failed")
@@ -2651,7 +2651,7 @@ describe('Button', () => {
             self.assertStatus(t, "F-CAT-01", BROKEN, f"{[x.name for x in order]}")
         # the same passing test in two targets: the later date whichever target is read first
         older = self.tmp / "web-older.xml"
-        older.write_text(junit_xml("vitest", SYSTEM_WEB))
+        older.write_text(junit_xml("vitest", SYSTEM_WEB), encoding="utf-8")
         os.utime(older, (ts(2026, 2, 5), ts(2026, 2, 5)))
         for order in ((web, older), (older, web)):
             t = self.project("DemoSystem", doc=both, state=make_state())
@@ -2660,7 +2660,7 @@ describe('Button', () => {
             self.assertEqual(t.state()["flows"]["F-CAT-01"]["run_id"], "20260220T120000-reuse", f"{[x.name for x in order]}")
         # a target whose reports hold no test is refused, among several
         hollow = self.tmp / "hollow.xml"
-        hollow.write_text("<testsuites></testsuites>")
+        hollow.write_text("<testsuites></testsuites>", encoding="utf-8")
         before = q.snapshot()
         self.assertEqual(self.run_engine(q, "--reuse", str(api.parent), str(hollow)).code, 2)
         self.assertIn(f"no test result read from {hollow}", self.run_engine(q, "--reuse", str(api.parent), str(hollow)).err)
@@ -2713,7 +2713,7 @@ describe('Button', () => {
         self.assertIn("mix", self.note(p, "F-MIX-01"))
 
     def test_a_proof_whose_file_the_scan_does_not_know_runs_its_runner_whole(self):
-        runners = json.loads((FIXTURES / "project_tree/DemoSystem/scripts/flows.json").read_text())["runners"]
+        runners = json.loads((FIXTURES / "project_tree/DemoSystem/scripts/flows.json").read_text(encoding="utf-8"))["runners"]
         runners[0]["only_args"] = ["{files}", "-t", "{pattern}"]
         doc = doc_text(row("F-A-01", "A deleted file", "", "gone.spec/was here"))
         p = self.project("DemoSystem", doc=doc, state=KEEP, config={"runners": runners})
@@ -2738,7 +2738,7 @@ describe('Button', () => {
         self.assertStatus(p, "F-B-01", OK, "a bare name finds its test in the report")
 
     def test_overlapping_test_folders_of_a_runner_count_each_file_once(self):
-        runners = json.loads((FIXTURES / "project_tree/DemoSystem/scripts/flows.json").read_text())["runners"]
+        runners = json.loads((FIXTURES / "project_tree/DemoSystem/scripts/flows.json").read_text(encoding="utf-8"))["runners"]
         runners[0]["tests"] = [{"dir": "apps/api/test", "patterns": ["*.spec.ts"]},
                                {"dir": "apps/api/test/unit", "patterns": ["*.spec.ts"]}]
         p = self.project("DemoSystem", doc=system_doc(), state=make_state(), config={"runners": runners})
@@ -2771,7 +2771,7 @@ describe('Button', () => {
         self.assertEqual(self.fake.docker_calls(), [])
 
     def test_a_runner_whose_test_folders_hold_no_file_says_so(self):
-        runners = json.loads((FIXTURES / "project_tree/DemoSystem/scripts/flows.json").read_text())["runners"]
+        runners = json.loads((FIXTURES / "project_tree/DemoSystem/scripts/flows.json").read_text(encoding="utf-8"))["runners"]
         runners[1]["tests"] = [{"dir": "apps/web/missing", "patterns": ["*.test.ts"]}]
         p = self.project("DemoSystem", doc=system_doc(), state=make_state(), config={"runners": runners})
         r = self.run_engine(p, "--from-cache")
@@ -2871,9 +2871,9 @@ class LanguageTests(EngineCase):
     def test_flows_md_wins_when_both_maps_exist_and_the_other_is_left_alone(self):
         p = self.project()
         portuguese = p.root / "docs" / "FLUXOS.md"
-        portuguese.write_text("# old map\n")
+        portuguese.write_text("# old map\n", encoding="utf-8")
         self.run_engine(p, "--from-cache")
-        self.assertEqual(portuguese.read_text(), "# old map\n")
+        self.assertEqual(portuguese.read_text(encoding="utf-8"), "# old map\n")
         self.assertIn("<!-- scoreboard:start -->", p.doc())
 
     def test_a_map_with_no_marks_takes_the_language_flag_and_english_by_default(self):
@@ -2902,9 +2902,9 @@ class LanguageTests(EngineCase):
     def test_a_state_stored_in_the_other_language_is_read_and_rewritten_in_the_maps_language(self):
         doc = doc_text(row("F-RULE-01", "Rules", "", "RulesTests/testA()"))
         p = self.project(doc=doc, state=make_state({"F-RULE-01": frec(REV, ["RulesTests/testA()"], when="2026-01-10", run=RUN1)}))
-        state = json.loads(p.state_path.read_text())
+        state = json.loads(p.state_path.read_text(encoding="utf-8"))
         state["flows"]["F-RULE-01"]["status"] = "revalidar"
-        p.state_path.write_text(json.dumps(state))
+        p.state_path.write_text(json.dumps(state), encoding="utf-8")
         self.run_engine(p, "--from-cache")
         self.assertEqual(p.state()["flows"]["F-RULE-01"]["status"], "revalidate")
         self.assertEqual(doc_row(p.doc(), "F-RULE-01")[4], "revalidate")
