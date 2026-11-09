@@ -10,6 +10,8 @@ import shlex
 OPERATORS = {";", ";;", "&", "&&", "|", "||", "|&", "(", ")", "\n"}
 WRAPPERS = {"sudo", "command", "exec", "time", "nice", "nohup", "builtin"}
 WORD_START = set(" \t;|&()<>")
+# What an escaped parenthesis becomes before lexing: a word that is no operator (the fullwidth forms).
+ESCAPED_PAREN = {"(": "（", ")": "）"}
 
 
 def _ansi_c(text, i):
@@ -42,7 +44,8 @@ def prepare(text):
             elif char == quote:
                 quote = None
         elif char == "\\" and i + 1 < len(text):
-            out.append(text[i:i + 2])
+            # `\(` and `\)` are words given to the program (find's grouping), never the shell's subshell operators.
+            out.append(ESCAPED_PAREN.get(text[i + 1], text[i:i + 2]))
             i += 1
         elif char == "$" and text.startswith("$'", i):
             plain, i = _ansi_c(text, i)

@@ -293,6 +293,11 @@ class Verdicts(unittest.TestCase):
 class ReviewTwo(unittest.TestCase):
     """False blocks and a gap found by the line-by-line review."""
 
+    def test_an_escaped_parenthesis_is_a_word_of_the_program(self):
+        self.assertIsNone(secret_guard.verdict(r"find . \( -name .env -o -name node_modules \) -prune -o -print"))
+        self.assertIsNotNone(secret_guard.verdict(r"find . \( -name .env -o -name .envrc \) -exec cat {} \;"))
+        self.assertIsNotNone(secret_guard.verdict("(cat .env)"))
+
     def test_shell_tracing_is_not_a_variable_dump(self):
         for command in ("set -x", "set -euxo pipefail; make", "set +x", "bash -c 'set -x; ls'"):
             with self.subTest(command=command):
