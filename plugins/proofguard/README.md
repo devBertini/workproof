@@ -1,11 +1,17 @@
 # proofguard
 
-Guardrails for Claude Code that enforce instead of advise. One plugin, two modules, each on by default and switchable in `/config`:
+Guardrails for Claude Code that enforce instead of advise. One plugin, several modules, each switchable in `/config`:
 
 | Module | What it does |
 |---|---|
 | Secret guard | Blocks Bash and PowerShell commands that read or print secrets, Docker commands that leak them, and commits that stage them. |
-| Proof plans | Keeps one plan per project; a stage closes on a named command that passes (a written proof is shown as unverified), and the plan is printed back at every session start. |
+| Proof plans | Keeps one plan per project; a stage closes on a named command that passes (a written proof is shown as unverified), and the plan is printed back at every session start. Optionally compacts the conversation when a stage closes. |
+| Agent roles | Five agents by activity (implementer, reviewer, debugger, designer, runner) on a fitting model each; a call that asks one for a bigger model asks you first. |
+| Commit rules | Optional rules for `guarded-commit`: one Conventional Commit line, a file size cap, new files that must not be committed. |
+| Long runs | Runs builds and suites over a minute in the background and wakes Claude once when they end or fail, instead of polling. |
+| Skills | Closing a delivery, keeping CLAUDE.md files and rules right, Docker Compose systems, Rust test loops, button layout. |
+
+A `concise` output style ships too; pick it in `/output-style` (it is never forced).
 
 ## Install
 
@@ -23,10 +29,17 @@ Requires Python 3.10 or later on PATH (`python3`, `python` or `py -3`). On Windo
 | `extra_secret_names` | empty | More file name patterns for the secret guard. |
 | `proof_plans` | on | The session-start plan hook. |
 | `plans_root` | empty | A folder of many projects whose active plans are listed at session start. |
+| `compact_on_stage_close` | off | Compact the conversation at the end of a turn that closed a stage, once the plan's repository is committed. |
+| `agent_roles` | on | The agents' model check and the delegating skill. |
+| `refuse_inheriting_agents` | off | Refuse `general-purpose`, `fork`, `Plan` and `Explore` agents unless the call names `haiku` or `sonnet`. |
+| `long_runs` | on | The `watch_run` tool and the running-long-commands skill. |
+| `delivery` | on | The closing-deliveries and maintaining-rules skills. |
+| `docker` | on | The Docker Compose skill. |
+| `rust` | on | The Rust skill. |
+| `ui_conventions` | on | The button layout skill. |
+| `buttons_positive_trailing_everywhere` | off | Confirming buttons on the trailing side on Windows too. |
 
-It also adds two skills, `proofguard:secret-guard` and `proofguard:working-in-stages`, which Claude loads when a block or a multi-step task calls for them.
-
-Claude Code asks for them when the plugin is enabled and shows them in `/config`. The command line tools (`work-plan`, `verify-run`, `guarded-commit`) stay available whichever modules are on.
+A skill cannot be unloaded by a plugin option: a switched-off module's skill tells Claude to ignore it. Claude Code asks for the options when the plugin is enabled and shows them in `/config`. The command line tools (`work-plan`, `verify-run`, `guarded-commit`, `watch-log`) stay available whichever modules are on.
 
 ## Secret guard
 
@@ -80,7 +93,7 @@ Plugin `bin/` folders are on the Bash tool's `PATH`, so Claude can run it by nam
 - the staged content, read from the index and not the working copy, matches a token format: GitHub, AWS, Slack, Stripe live, Anthropic, OpenAI and Hugging Face tokens, and private key blocks. The report gives file, line and kind, never the value. A Google API key only warns;
 - something else is already staged, or nothing changes in those paths.
 
-Otherwise it commits with the message as written. It checks no message style and never pushes. Paths are taken literally (`file[1].txt` is that file, never a pattern). Every text file is scanned whatever its size, UTF-16 and UTF-32 included; only binary files are skipped, with a note.
+Otherwise it commits with the message as written. It never pushes. By default it checks no message style; the commit rules below add checks. Paths are taken literally (`file[1].txt` is that file, never a pattern). Every text file is scanned whatever its size, UTF-16 and UTF-32 included; only binary files are skipped, with a note.
 
 ### Measured
 
@@ -188,6 +201,33 @@ Status is `pending`, `in_progress`, `done` or `dropped`. Stages are only ever ma
 - The refusal check can refuse a harmless command whose words look dangerous (`git log --grep push`).
 - A plan label with spaces in a path outside the plans root cannot be parsed by tools that read the output of `work-plan`; they should read the file instead.
 - Plugin `bin/` commands are not installed by claude.ai; use Claude Code.
+
+## Commit rules
+
+Each rule is off until an environment variable turns it on (put them in the `env` block of a settings file; command line tools get no plugin options). `guarded-commit` then refuses, committing nothing, when one breaks:
+
+| Variable | Rule |
+|---|---|
+| `PROOFGUARD_COMMIT_CONVENTIONAL=on` | The message is one Conventional Commit line, `type(scope)!: text`, type one of feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert. |
+| `PROOFGUARD_COMMIT_TYPES=add,change` | The same rule with your own types. |
+| `PROOFGUARD_COMMIT_MAX_MB=5` | No committed file larger than 5 MB. |
+| `PROOFGUARD_COMMIT_BLOCK_NEW=docs/**/*.png, !docs/reference/**` | No new file matching a glob; a `!` glob is an exception. Changes to files already tracked pass. |
+
+## Agent roles
+
+| Agent | Default model | For |
+|---|---|---|
+| `implementer` | sonnet | decided work to a written spec |
+| `reviewer` | opus | an independent review; edits nothing |
+| `debugger` | opus | a failure nobody has explained yet |
+| `designer` | opus | proposals judged by taste or architecture |
+| `runner` | haiku | mechanical work with a checkable result |
+
+A PreToolUse hook on the Agent tool asks you before a call runs one of them on a model above its default. With `refuse_inheriting_agents` on it also refuses agents that would run on the session's model. The skill `delegating-to-agents` says when to delegate at all and how to write the brief.
+
+## Long runs
+
+The `watch_run` tool (a hooks module) watches a background command's log and wakes Claude once: at the first fatal line, when the log stops growing, or when the command ends. `watch-log` is the same watcher as a command. The skill `running-long-commands` gives the pattern. Hooks modules run in Claude Code only.
 
 ## License
 

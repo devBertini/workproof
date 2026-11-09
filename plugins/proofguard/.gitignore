@@ -1,2 +1,3 @@
 # Dev-only types the engine lays beside a plugin that has a hooks module.
 .claude-plugin/types/
+evals/results/
