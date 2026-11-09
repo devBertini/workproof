@@ -22,8 +22,9 @@ END_OF_CMD_PART
 dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 script="$dir/../scripts/$1"
 shift
+# A python3 that cannot run code (the macOS command line tools stub) is skipped.
 for py in python3 python; do
-  if command -v "$py" >/dev/null 2>&1; then
+  if command -v "$py" >/dev/null 2>&1 && "$py" -c '' >/dev/null 2>&1; then
     exec "$py" -B "$script" "$@"
   fi
 done
