@@ -1,5 +1,5 @@
 {
-  "name": "proofguard",
+  "name": "workproof",
   "owner": {
     "name": "devBertini"
   },
@@ -9,8 +9,8 @@
   },
   "plugins": [
     {
-      "name": "proofguard",
-      "source": "./plugins/proofguard",
+      "name": "workproof",
+      "source": "./plugins/workproof",
       "description": "Blocks shell and Docker commands that read or print secrets and commits that stage them, and keeps a per-project plan whose stages close on a named command that passes, while a written proof is shown as unverified.",
       "category": "productivity"
     }

@@ -1,0 +1,109 @@
+{
+  "name": "workproof",
+  "version": "0.1.0",
+  "description": "Guardrails that enforce instead of advise: a secret guard for shell, Docker and commits; per-project plans whose stages close only on a command that passes; agent roles with model limits; commit rules; a flow map kept true by its tests; and skills for delivery, Docker, Rust and button layout. Each module switches on or off in the plugin options.",
+  "author": {
+    "name": "devBertini"
+  },
+  "license": "MIT",
+  "keywords": [
+    "security",
+    "secrets",
+    "planning",
+    "verification",
+    "hooks",
+    "docker",
+    "git",
+    "agents",
+    "workflow",
+    "commits",
+    "rust",
+    "flow-map"
+  ],
+  "userConfig": {
+    "secret_guard": {
+      "type": "boolean",
+      "title": "Secret guard module",
+      "description": "Block Bash and PowerShell commands that read or print secrets, Docker commands that leak them, and commits that stage them.",
+      "default": true
+    },
+    "extra_secret_names": {
+      "type": "string",
+      "title": "Extra secret file names",
+      "description": "File name patterns to guard besides the built-in list, separated by commas or new lines. A * stays inside one folder, ** crosses folders, and a pattern matches the end of a path: *.vault, deploy/keys/**, .my-token",
+      "required": false
+    },
+    "proof_plans": {
+      "type": "boolean",
+      "title": "Proof plans module",
+      "description": "Print the project's plan at every session start; a stage closed on a passing command is marked verified, one closed on a written proof unverified.",
+      "default": true
+    },
+    "plans_root": {
+      "type": "directory",
+      "title": "Plans root",
+      "description": "Optional folder that holds many projects. When set, the session-start hook also lists the other active plans under it (up to three folders deep). Leave empty to see only the current project's plan.",
+      "required": false
+    },
+    "agent_roles": {
+      "type": "boolean",
+      "title": "Agent roles module",
+      "description": "Five agents by activity (implementer, reviewer, debugger, designer, runner) with the delegating skill; a call that asks one of them for a model above its default asks you first.",
+      "default": true
+    },
+    "refuse_inheriting_agents": {
+      "type": "boolean",
+      "title": "Refuse agents on the session's model",
+      "description": "Refuse general-purpose, fork, Plan and Explore agents unless the call names haiku or sonnet, since they otherwise run on the session's (often most expensive) model.",
+      "default": false
+    },
+    "ui_conventions": {
+      "type": "boolean",
+      "title": "Button layout module",
+      "description": "A skill for placing, sizing and styling the buttons of any screen, dialog, form or game menu.",
+      "default": true
+    },
+    "buttons_positive_trailing_everywhere": {
+      "type": "boolean",
+      "title": "Confirm buttons trailing on Windows too",
+      "description": "Put confirming actions on the trailing side on Windows as well, instead of the platform's leading affirmative button.",
+      "default": false
+    },
+    "delivery": {
+      "type": "boolean",
+      "title": "Delivery module",
+      "description": "Skills for closing a delivery (proof, clean machine, documents, plan, commits, report) and for keeping CLAUDE.md files, rules and skills right.",
+      "default": true
+    },
+    "rust": {
+      "type": "boolean",
+      "title": "Rust module",
+      "description": "A skill for a short Rust build and test loop.",
+      "default": true
+    },
+    "docker": {
+      "type": "boolean",
+      "title": "Docker module",
+      "description": "A skill for building, testing and running Docker Compose systems in throwaway projects.",
+      "default": true
+    },
+    "long_runs": {
+      "type": "boolean",
+      "title": "Long runs module",
+      "description": "Watch long background runs with the watch_run tool and the watch-log command, and show the running-long-commands skill.",
+      "default": true
+    },
+    "compact_on_stage_close": {
+      "type": "boolean",
+      "title": "Compact on stage close",
+      "description": "When work-plan done closes a stage in the main session, and the plan repository is committed with a stage still pending, compact the conversation at the end of that turn. Needs the proof plans module.",
+      "default": false
+    },
+    "flow_map": {
+      "type": "boolean",
+      "title": "Flow map module",
+      "description": "Keep each project flow map (docs/FLOWS.md) true: the check-flows engine recomputes every flow status from the tests and screenshots it cites, and two skills teach the method.",
+      "default": true
+    }
+  }
+}

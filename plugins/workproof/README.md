@@ -1,0 +1,244 @@
+# workproof
+
+Guardrails for Claude Code that enforce instead of advise. One plugin, several modules, each switchable in `/config`:
+
+| Module | What it does |
+|---|---|
+| Secret guard | Blocks Bash and PowerShell commands that read or print secrets, Docker commands that leak them, and commits that stage them. |
+| Proof plans | Keeps one plan per project; a stage closes on a named command that passes (a written proof is shown as unverified), and the plan is printed back at every session start. Optionally compacts the conversation when a stage closes. |
+| Agent roles | Five agents by activity (implementer, reviewer, debugger, designer, runner) on a fitting model each; a call that asks one for a bigger model asks you first. |
+| Commit rules | Optional rules for `guarded-commit`: one Conventional Commit line, a file size cap, new files that must not be committed. |
+| Flow map | Keeps `docs/FLOWS.md` true: every user flow names its proof, and only the `check-flows` engine writes a flow's status from the tests and screenshots it cites. |
+| Long runs | Runs builds and suites over a minute in the background and wakes Claude once when they end or fail, instead of polling. |
+| Skills | Closing a delivery, keeping CLAUDE.md files and rules right, Docker Compose systems, Rust test loops, button layout. |
+
+A `concise` output style ships too; pick it in `/output-style` (it is never forced).
+
+## Install
+
+```
+/plugin install workproof --marketplace devBertini/workproof
+```
+
+Requires Python 3.10 or later on PATH (`python3`, `python` or `py -3`). On Windows it also requires Git for Windows: the hooks run through Git Bash, which Claude Code uses when it is installed. Without Git Bash, Claude Code falls back to PowerShell, which cannot parse the hook command, and a failing PreToolUse hook there blocks every shell call.
+
+## Options
+
+| Option | Default | Effect |
+|---|---|---|
+| `secret_guard` | on | The secret guard hook. |
+| `extra_secret_names` | empty | More file name patterns for the secret guard. |
+| `proof_plans` | on | The session-start plan hook. |
+| `plans_root` | empty | A folder of many projects whose active plans are listed at session start. |
+| `compact_on_stage_close` | off | Compact the conversation at the end of a turn that closed a stage, once the plan's repository is committed. |
+| `agent_roles` | on | The agents' model check and the delegating skill. |
+| `refuse_inheriting_agents` | off | Refuse `general-purpose`, `fork`, `Plan` and `Explore` agents unless the call names `haiku` or `sonnet`. |
+| `flow_map` | on | The mapping-flows and developing-versions skills. |
+| `long_runs` | on | The `watch_run` tool and the running-long-commands skill. |
+| `delivery` | on | The closing-deliveries and maintaining-rules skills. |
+| `docker` | on | The Docker Compose skill. |
+| `rust` | on | The Rust skill. |
+| `ui_conventions` | on | The button layout skill. |
+| `buttons_positive_trailing_everywhere` | off | Confirming buttons on the trailing side on Windows too. |
+
+A skill cannot be unloaded by a plugin option: a switched-off module's skill tells Claude to ignore it. Claude Code asks for the options when the plugin is enabled and shows them in `/config`. The command line tools (`work-plan`, `verify-run`, `guarded-commit`, `watch-log`, `check-flows`) stay available whichever modules are on.
+
+## Secret guard
+
+The secret guard stops the shell from reading or printing secrets. A hook inspects every Bash and PowerShell command before it runs and blocks the ones that would read a credential file, print a container's environment or leak a compose file's values. A small command, `guarded-commit`, commits only the paths you name and refuses when a secret would go in.
+
+It is a pattern guard against mistakes, not a sandbox. See [Limits](#limits).
+
+### What it blocks
+
+A command is blocked, with exit code 2 and the reason on stderr for Claude, when it:
+
+- is given the name of a secret file: `.env`, `.env.*` and `*.env` (but not `.env.example`, `.env.sample` or `.env.template`), `.envrc`, `.dev.vars`, `secrets.toml`, `credentials.json` (Claude Code's own included), private keys (`id_rsa`, `id_ed25519` and siblings, `*.pem`, `*.key`, `*.p12`, `*.pfx`, `*.p8`), keystores, and credential files of AWS, Google Cloud, Azure, Docker, Kubernetes, npm, PyPI, netrc, pgpass, htpasswd, GitHub CLI, GnuPG and Git, plus service-account and OAuth client files and Terraform state. Windows paths (`C:\app\.env`) and globs (`.env*`) count;
+- hands such a name to an interpreter: `python -c "open('.env')"`, a heredoc fed to `python` or `node`, `bash -c '...'`, `powershell -Command`, `cmd /c`, even through nesting or behind `docker exec` and `sudo`;
+- pipes a listed secret file name into a reader: `find . -name .env | xargs cat`;
+- prints the environment: bare `env`, `printenv`, `export -p` or `set`, `Get-ChildItem env:`, `[Environment]::GetEnvironmentVariables()`, `/proc/*/environ`, or a variable whose name says it holds a secret (`echo $API_TOKEN`, `printenv GITHUB_TOKEN`, `$env:ANTHROPIC_API_KEY`);
+- runs one of the Docker leaks: `docker compose config` without `--no-interpolate` or with `--environment`, `docker inspect` or `docker service inspect` without a `--format` that leaves out `Config.Env` (`--format json` is the whole object), or `env`, `printenv`, `/proc/*/environ` and `/run/secrets/*` read inside a container.
+
+It lets through what prints nothing of a secret file: listing, testing, hashing or counting it (`ls`, `test`, `stat`, `wc`, `sha256sum`, `Test-Path`, `Get-ChildItem`), creating, writing or removing it (`touch`, `rm`, `Remove-Item`, `> .env`, `cat > .env <<'EOF'`, a copy or a rename into it), handing it to a tool that uses it without printing it (`ssh -i`, `scp -i`, `--env-file`), and naming it as a search pattern, a `--include` glob or in a commit message.
+
+Examples:
+
+| Command | Result |
+| --- | --- |
+| `cat .env` | blocked |
+| `cp ~/.aws/credentials /tmp/x` | blocked |
+| `python -c "print(open('id_rsa').read())"` | blocked |
+| `docker compose config` | blocked, use `--no-interpolate` |
+| `docker exec db printenv` | blocked |
+| `ls -la .env`, `test -f .env`, `git check-ignore .env` | allowed (names only) |
+| `docker compose --env-file .env up -d` | allowed |
+| `cp .env.example .env` | allowed (writes, prints nothing) |
+| `cat .env.example` | allowed |
+
+### Options
+
+Its extra option, set when the plugin is enabled or in `/config`:
+
+- `extra_secret_names`: file name patterns to guard besides the built-in list, separated by commas or new lines (a JSON array also works). `*` stays inside one folder, `**` crosses folders, and a pattern matches the end of a path, so `*.vault`, `deploy/keys/**` and `.my-token` all work. Matching ignores case. Plugin options are saved only in your user settings; to set this list per project, or for `guarded-commit` (which runs through the Bash tool and gets no plugin options), put the same value in the environment variable `WORKPROOF_EXTRA_SECRET_NAMES` through the `env` of any settings file. Both lists apply.
+
+Claude Code hands the value to the hook as the environment variable `CLAUDE_PLUGIN_OPTION_EXTRA_SECRET_NAMES` ([plugins reference](https://code.claude.com/docs/en/plugins-reference)). It reaches hook processes only, so `guarded-commit`, which runs as an ordinary command, applies the extra patterns only when that variable is present in its environment.
+
+### guarded-commit
+
+```
+guarded-commit <repo> "<message>" <path>...
+```
+
+Plugin `bin/` folders are on the Bash tool's `PATH`, so Claude can run it by name. It stages exactly the paths given, then refuses (exit 1, reason on stderr, nothing committed, nothing left staged) when:
+
+- a staged file name matches a secret file name;
+- the staged content, read from the index and not the working copy, matches a token format: GitHub, AWS, Slack, Stripe live, Anthropic, OpenAI and Hugging Face tokens, and private key blocks. The report gives file, line and kind, never the value. A Google API key only warns;
+- something else is already staged, or nothing changes in those paths.
+
+Otherwise it commits with the message as written. It never pushes. By default it checks no message style; the commit rules below add checks. Paths are taken literally (`file[1].txt` is that file, never a pattern). Every text file is scanned whatever its size, UTF-16 and UTF-32 included; only binary files are skipped, with a note.
+
+### Measured
+
+On one developer's local Claude Code transcripts, 41,054 Bash and PowerShell commands were replayed through the guard and every block was reviewed: 19 blocks, 11 intended (among them `env | grep` lines that would print API key values) and 8 false (0.02% of commands). The false blocks were interpreter code that only mentions a secret file name while editing a text file, and a container `env | grep` on a public image. The guard called through Git Bash and the launcher on Windows 11 takes a median of 76 ms and a p95 of 100 ms (200 calls).
+
+### Limits
+
+- It matches patterns in the command text. A command built to hide a file name (concatenating a name, reading it from a variable, an encoded string) gets past it. It guards against mistakes, not against an adversary.
+- It is not a sandbox. Where Claude Code's sandbox runs, turn it on as well: it can deny reads of listed files and environment variables at the operating-system level, which a pattern cannot. It does not run on native Windows, where this hook is the only layer.
+- Interpreter code that merely mentions a secret file name, for example a script that edits a text file containing the name, is blocked too: the guard cannot tell a mention from a read. So is `source .env`: a malformed line makes the shell echo it back.
+- A variable is recognized as secret by its name only (`TOKEN`, `SECRET`, `PASSWORD`, `API_KEY`, `CREDENTIAL` and the like); printing a secret held in a variable with an ordinary name gets past it, and so does interpreter code that prints its environment (`print(os.environ)`).
+- On Windows, a plugin folder whose path holds `&` breaks the launcher under cmd.exe and the hook does not run.
+- It sees commands, not file contents: a secret that reaches the conversation by another route (a file tool, a copied value) is outside it.
+- The guard fails closed: if its hook cannot start (no Python), crashes or passes its 10 s timeout, the command is blocked (`onFailure: "block"`, Claude Code 2.1.295 or later; older versions let the command run).
+- There is no support promise: issues are looked at monthly.
+
+## Proof plans
+
+Proof plans keeps one plan per project in a JSON file and makes a stage close only on proof. You split the work into stages, each with a "done when" that names its proof. To close a stage you hand `work-plan` the proof command; it runs the command and closes the stage only if the command exits 0, storing the evidence (command, exit code, duration, a hash of the whole output, its last lines). The plan is printed back at the start of every session, after `/clear` and after a compaction, so work resumes where it stopped.
+
+### An example session
+
+```
+$ work-plan new --goal "Add CSV export to the report page"
+$ work-plan add --title "Export module" --done-when "pytest tests/test_export.py passes"
+$ work-plan add --title "Wire the button" --done-when "the e2e test for the export button passes"
+$ work-plan start 1
+$ work-plan note 1 "dates must be ISO 8601; the report model already has to_rows()"
+$ work-plan done 1 --result "export module and tests added" --bundle -- pytest tests/test_export.py
+ACTIVE PLAN /work/app/docs/ACTIVE-PLAN.json: 1 done, 0 dropped, 1 open (`work-plan show` lists every stage)
+  [done] 1. Export module [verified]: export module and tests added (proof: verified: pytest tests/test_export.py exit 0 in 2.4 s)
+  [todo] 2. Wire the button | done when: the e2e test for the export button passes
+  next: stage 2, Wire the button
+```
+
+If the test had failed, stage 1 would have stayed open and the command's last lines would have been printed. In a later session the hook prints the plan, with the notes of the stage in progress, before you type anything.
+
+### Commands
+
+`work-plan` works on the plan of the current project, or of `--where <folder>`.
+
+| Command | What it does |
+| --- | --- |
+| `new --goal "<text>"` | Creates the plan (refused if one exists). |
+| `add --title "<t>" --done-when "<proof>"` | Appends a pending stage. |
+| `start N` | Marks a stage in progress; only one at a time. |
+| `note N "<text>"` | Appends a note to an open stage. |
+| `done N --result "<r>" --bundle [--timeout S] -- <command...>` | Runs the command from the project folder (default 600 s) and closes the stage only on exit 0. |
+| `done N --result "<r>" --proof "<text>"` | Closes a stage on a proof that is not a command; `show` and the hook mark it `[unverified]`. Not combinable with `--bundle`. |
+| `pause N --reason "<r>"` | Puts a stage in progress back to pending, with a note. |
+| `drop N --reason "<r>"` | Marks an open stage dropped. |
+| `show` | Prints the whole plan (read only). |
+| `finish` | Deletes the plan once every stage is closed or dropped. |
+| `hook` | The SessionStart hook; reads Claude Code's hook JSON on stdin. |
+
+`done` and `drop` erase the stage's notes; put what must last into `--result`. Exit status is 0 on success and 1 with a message on stderr when a command is refused or fails, including a `--bundle` command that does not exit 0.
+
+`verify-run` is the engine behind `--bundle` and can be used alone:
+
+```
+verify-run run [--cwd <dir>] [--timeout N] [--shell] -- <command...>   # prints one JSON object
+verify-run check <json | file | ->                                      # validates such an object
+```
+
+`run` exits 0 when the command passed, 1 when it failed or timed out, 2 when it was refused or misused. A pipeline fails when any of its stages fails. It never runs a command carrying `--execute`, a `git ... push`, or an `rm` with a recursive flag. This is a deliberately conservative check on the words of the command line, not a sandbox.
+
+### Where the project is
+
+The project is the git top-level folder of the current folder (or of `--where`); outside a git repository it is the folder itself. The plan is `<project>/docs/ACTIVE-PLAN.json`.
+
+### Configuration
+
+One optional setting, `plans_root`: a folder that holds many projects. Claude Code asks for it when you enable the plugin and exports it to the hook as `CLAUDE_PLUGIN_OPTION_PLANS_ROOT`. Commands run through the Bash tool do not receive plugin options, so for the CLI set the environment variable `PROOF_PLANS_ROOT` (it wins over the option).
+
+With a plans root:
+
+- a session started outside any single project (for example in the root folder) gets the main plan in full and one index line per other active plan under the root, up to three folders deep;
+- plan labels are relative to the root (without one, the label is the absolute path);
+- the root folder's own plan is `<root>/.claude/ACTIVE-PLAN.json`;
+- each plan-changing command records which plan the session works on in `<root>/.claude/plan-sessions/<session id>` (pruned after 14 days), and the hook follows it.
+
+Without one, the hook prints only the current project's plan, and nothing else is written outside the project. Set `PROOF_PLANS_SILENT=1` to make the hook print nothing.
+
+### File format
+
+```json
+{
+ "goal": "Add CSV export to the report page",
+ "created": "2026-01-15",
+ "stages": [
+  {"id": 1, "title": "Export module", "done_when": "pytest passes", "status": "done",
+   "notes": [], "result": "export module added", "proof": "verified: pytest exit 0 in 2.4 s",
+   "verified": {"command": "pytest", "exit": 0, "duration_s": 2.4, "sha256": "...", "tail": "...", "time": "..."}},
+  {"id": 2, "title": "Wire the button", "done_when": "e2e passes", "status": "pending", "notes": []}
+ ]
+}
+```
+
+Status is `pending`, `in_progress`, `done` or `dropped`. Stages are only ever marked, never removed. The file is written with LF line ends and UTF-8.
+
+### Limits
+
+- The hook output is capped at 9,500 characters (Claude Code keeps 10,000). Over that, older closed stages fold into one line, then the oldest notes, then index lines, then texts are clipped.
+- `--bundle` proves that a command exited 0, not that the command tests the right thing; the done-when text is where that is decided.
+- The refusal check can refuse a harmless command whose words look dangerous (`git log --grep push`).
+- A plan label with spaces in a path outside the plans root cannot be parsed by tools that read the output of `work-plan`; they should read the file instead.
+- Plugin `bin/` commands are not installed by claude.ai; use Claude Code.
+
+## Commit rules
+
+Each rule is off until an environment variable turns it on (put them in the `env` block of a settings file; command line tools get no plugin options). `guarded-commit` then refuses, committing nothing, when one breaks:
+
+| Variable | Rule |
+|---|---|
+| `WORKPROOF_COMMIT_CONVENTIONAL=on` | The message is one Conventional Commit line, `type(scope)!: text`, type one of feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert. |
+| `WORKPROOF_COMMIT_TYPES=add,change` | The same rule with your own types. |
+| `WORKPROOF_COMMIT_MAX_MB=5` | No committed file larger than 5 MB. |
+| `WORKPROOF_COMMIT_BLOCK_NEW=docs/**/*.png, !docs/reference/**` | No new file matching a glob; a `!` glob is an exception. Changes to files already tracked pass. |
+
+## Agent roles
+
+| Agent | Default model | For |
+|---|---|---|
+| `implementer` | sonnet | decided work to a written spec |
+| `reviewer` | opus | an independent review; edits nothing |
+| `debugger` | opus | a failure nobody has explained yet |
+| `designer` | opus | proposals judged by taste or architecture |
+| `runner` | haiku | mechanical work with a checkable result |
+
+A PreToolUse hook on the Agent tool asks you before a call runs one of them on a model above its default. With `refuse_inheriting_agents` on it also refuses agents that would run on the session's model. The skill `delegating-to-agents` says when to delegate at all and how to write the brief.
+
+## Flow map
+
+`check-flows` keeps a project's `docs/FLOWS.md` true. Each flow names its proof: an automated test, a committed screenshot, a dated manual check, or a `device:` reason. Only the engine writes `validated`, `revalidate`, `no proof`, `device only` or `broken`, and a change to a cited source demotes a flow to `revalidate`.
+
+- Modes: `--only-stale`, `--from-cache`, `--reuse`, `--changed`, `--resume`, `--check`, `--prune-state`, `--init`. Exit codes: 0 clean, 1 a broken flow or a difference, 2 unusable input.
+- Configuration lives in the project's `scripts/flows.json` (skill `mapping-flows`). Maps in Brazilian Portuguese (`docs/FLUXOS.md`) work unchanged, and `check-flows --init --language pt-BR` starts one.
+- The skill `developing-versions` runs a product version in thin slices on top of the map.
+
+## Long runs
+
+The `watch_run` tool (a hooks module) watches a background command's log and wakes Claude once: at the first fatal line, when the log stops growing, or when the command ends. `watch-log` is the same watcher as a command. The skill `running-long-commands` gives the pattern. Hooks modules run in Claude Code only.
+
+## License
+
+MIT
