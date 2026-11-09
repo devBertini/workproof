@@ -12,10 +12,10 @@ import tempfile
 import time
 import unittest
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+TESTS = os.path.dirname(os.path.abspath(__file__))
+HERE = os.path.join(os.path.dirname(TESTS), "plugins", "workproof", "scripts")  # the engines under test
+sys.path.insert(0, HERE)
 import watch_log  # noqa: E402
-
-HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPT = os.environ.get("WATCH_SCRIPT") or os.path.join(HERE, "watch_log.py")
 
 

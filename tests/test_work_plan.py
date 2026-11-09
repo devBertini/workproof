@@ -13,7 +13,8 @@ import time
 import unittest
 from unittest import mock
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+TESTS = os.path.dirname(os.path.abspath(__file__))
+HERE = os.path.join(os.path.dirname(TESTS), "plugins", "workproof", "scripts")  # the engines under test
 sys.path.insert(0, HERE)
 import work_plan as wp  # noqa: E402
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Regenerates every file under scripts/flow_fixtures except itself.
+"""Regenerates every file under tests/flow_fixtures except itself.
 
 Run `python -B regenerate_fixtures.py` after changing a fixture source: the static states hold the sha1
 fingerprints of the files their Entry cells cite, and `test_fixture_fingerprints_match_their_sources` fails when

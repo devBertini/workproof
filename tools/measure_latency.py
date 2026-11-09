@@ -15,11 +15,11 @@ import subprocess
 import sys
 import time
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE)
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(REPO, "tests"))
 from test_support import find_sh, posix  # noqa: E402
 
-LAUNCHER = os.path.join(os.path.dirname(HERE), "hooks", "run-hook.cmd")
+LAUNCHER = os.path.join(REPO, "plugins", "workproof", "hooks", "run-hook.cmd")
 CASES = [("ls -la src && git status --short", 0), ("cat .env", 2)]
 
 

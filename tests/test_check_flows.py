@@ -67,8 +67,9 @@ import xml.etree.ElementTree as ET
 from unittest import mock
 from xml.sax.saxutils import quoteattr
 
-HERE = pathlib.Path(__file__).resolve().parent
-FIXTURES = HERE / "flow_fixtures"
+TESTS = pathlib.Path(__file__).resolve().parent
+HERE = TESTS.parent / "plugins" / "workproof" / "scripts"   # the engine under test
+FIXTURES = TESTS / "flow_fixtures"
 ENGINE_PATH = HERE / "check_flows.py"
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(HERE))

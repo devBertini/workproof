@@ -5,7 +5,8 @@ import subprocess
 import sys
 import unittest
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+TESTS = os.path.dirname(os.path.abspath(__file__))
+HERE = os.path.join(os.path.dirname(TESTS), "plugins", "workproof", "scripts")  # the engines under test
 sys.path.insert(0, HERE)
 import agent_guard  # noqa: E402
 

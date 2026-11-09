@@ -57,7 +57,7 @@ Exit codes: 0 clean; 1 a flow is broken, a batch produced no result, or --check 
 2 the input is unusable (configuration, map, state, arguments) and nothing was written.
 
 Every subprocess (xcodebuild, swift test, xcresulttool, simctl, git, a runner project's test commands)
-and the clock go through one runtime object, so the tests (test_check_flows.py beside it) replace them.
+and the clock go through one runtime object, so its tests replace them.
 Python 3.10, standard library.
 """
 
