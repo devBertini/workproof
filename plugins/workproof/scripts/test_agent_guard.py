@@ -14,7 +14,7 @@ AGENTS = ("implementer", "runner", "reviewer", "debugger", "designer")
 
 
 def run(tool_input, **env):
-    full = {k: v for k, v in os.environ.items() if not k.startswith("CLAUDE_PLUGIN_OPTION_")}
+    full = {k: v for k, v in os.environ.items() if not k.startswith(("CLAUDE_PLUGIN_OPTION_", "WORKPROOF_"))}
     full.update(env)
     return subprocess.run([sys.executable, "-B", os.path.join(HERE, "agent_guard.py")],
                           input=json.dumps({"tool_name": "Agent", "tool_input": tool_input}),
@@ -65,6 +65,10 @@ class Hook(unittest.TestCase):
         out = run({"subagent_type": "general-purpose"}, CLAUDE_PLUGIN_OPTION_REFUSE_INHERITING_AGENTS="true")
         self.assertEqual(out.returncode, 2)
         self.assertIn("delegating-to-agents", out.stderr)
+
+    def test_plain_variable_turns_the_refusal_on(self):
+        out = run({"subagent_type": "Explore"}, WORKPROOF_REFUSE_INHERITING_AGENTS="on")
+        self.assertEqual(out.returncode, 2)
 
     def test_generic_passes_without_the_option(self):
         out = run({"subagent_type": "general-purpose"})

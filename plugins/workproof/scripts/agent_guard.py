@@ -2,7 +2,7 @@
 
 - A call that asks one of this plugin's agents for a model above the agent's own default (haiku < sonnet < opus, any
   other model counted above opus) asks the user first.
-- With the option refuse_inheriting_agents on (off by default), a generic agent (general-purpose, claude, fork, Plan,
+- With the option refuse_inheriting_agents on (off by default; WORKPROOF_REFUSE_INHERITING_AGENTS=on also turns it on), a generic agent (general-purpose, claude, fork, Plan,
   or no type) and Explore are refused unless the call names haiku or sonnet: they run on the session's model, which
   is often the most expensive one.
 
@@ -18,6 +18,11 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from modules import module_enabled, option_on  # noqa: E402
+
+
+def option_on_env(name):
+    """The same switch from a plain variable, for settings files whose plugin options cannot be set per project."""
+    return os.environ.get(name, "").strip().lower() in {"true", "1", "yes", "on"}
 
 PLUGIN_ROOT = os.path.dirname(HERE)
 AGENTS = os.path.join(PLUGIN_ROOT, "agents")
@@ -82,7 +87,8 @@ def main():
     tool_input = data.get("tool_input") if isinstance(data, dict) else None
     if not isinstance(tool_input, dict):
         return 0
-    verdict, reason = decide(tool_input, option_on("refuse_inheriting_agents"))
+    refuse = option_on("refuse_inheriting_agents") or option_on_env("WORKPROOF_REFUSE_INHERITING_AGENTS")
+    verdict, reason = decide(tool_input, refuse)
     if verdict == "deny":
         sys.stderr.write(reason + "\n")
         return 2

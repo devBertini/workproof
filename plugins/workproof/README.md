@@ -41,6 +41,8 @@ Requires Python 3.10 or later on PATH (`python3`, `python` or `py -3`). On Windo
 | `ui_conventions` | on | The button layout skill. |
 | `buttons_positive_trailing_everywhere` | off | Confirming buttons on the trailing side on Windows too. |
 
+Plugin options are saved in your user settings only. For one project, the `env` block of its settings file can turn on two of them instead: `WORKPROOF_COMPACT_ON_STAGE_CLOSE=on` and `WORKPROOF_REFUSE_INHERITING_AGENTS=on`.
+
 A skill cannot be unloaded by a plugin option: a switched-off module's skill tells Claude to ignore it. Claude Code asks for the options when the plugin is enabled and shows them in `/config`. The command line tools (`work-plan`, `verify-run`, `guarded-commit`, `watch-log`, `check-flows`) stay available whichever modules are on.
 
 ## Secret guard
