@@ -1,0 +1,38 @@
+# The gate on every push and pull request: the Python suites and the static checks on three systems and two Pythons,
+# and the plugin's own tests and manifest validation with Claude Code on each system.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.10", "3.x"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      # actions/checkout v7.0.1 and actions/setup-python v7.1.0, pinned by commit.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Identity for the commits the tests make
+        run: |
+          git config --global user.name "ci"
+          git config --global user.email "ci@example.invalid"
+          git config --global init.defaultBranch main
+      # The version the plugin was developed on; `claude plugin test` and `validate` need no login.
+      - name: Claude Code
+        shell: bash
+        env:
+          CLAUDE_CODE_VERSION: "2.1.321"
+        run: npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
+      - name: Gate
+        run: python -B scripts/check_all.py --require-claude

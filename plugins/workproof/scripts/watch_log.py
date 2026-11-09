@@ -39,12 +39,27 @@ def alive(pid):
             return False
         except PermissionError:
             return True
-        return True
+        return not zombie(pid)
     listed = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"], capture_output=True).stdout
     if f'"{pid}"'.encode() in listed:
         return True
     sh = shutil.which("sh")
     return sh is not None and subprocess.run([sh, "-c", f"kill -0 {pid}"], capture_output=True).returncode == 0
+
+
+def zombie(pid):
+    """Whether the process has exited and only waits for its parent to collect it: `kill -0` still succeeds for it,
+    and a writer in that state will never write its end line. Linux says so in /proc; elsewhere `ps` does."""
+    try:
+        with open("/proc/%d/stat" % pid, encoding="utf-8", errors="replace") as handle:
+            return handle.read().rpartition(")")[2].split()[:1] == ["Z"]
+    except OSError:
+        pass
+    try:
+        state = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return state.strip().startswith("Z")
 
 
 def native_path(path):

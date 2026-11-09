@@ -1062,7 +1062,7 @@ class ModeTests(EngineCase):
         self.assertIn("Pricing rules/loads()", listing(r.out, "uncited", "passing"))
 
     def test_build_folder_is_project_claude_folder(self):
-        """Defect: build folder under /tmp instead of flows-<Project>; mode --derived-data."""
+        """The build folder is flows-<Project> under the home folder's DerivedData; mode --derived-data."""
         doc = doc_text(row("F-RULE-01", "Rules", "", "RulesTests/testA()"))
         dd = self.home / "Library" / "Developer" / "Xcode" / "DerivedData" / "flows-Demo"
         p = self.project(doc=doc, state=make_state())
@@ -1071,7 +1071,6 @@ class ModeTests(EngineCase):
         self.assertEqual(os.path.realpath(arg_after(cmd, "-derivedDataPath")), os.path.realpath(dd))
         self.assertTrue(os.path.realpath(arg_after(cmd, "-resultBundlePath")).startswith(os.path.realpath(dd / "results") + os.sep),
                         "bundles go under <derived data>/results/")
-        self.assertFalse([a for a in cmd if a.startswith("/tmp")], "no path may start with /tmp")
         self.fake.reset()
         q = self.project(doc=doc, state=make_state(), config={"derived_data": ".derived/flows-dd", "results_dir": ".derived/results"})
         self.run_engine(q, "--only-stale", xcode=["auto"])

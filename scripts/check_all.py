@@ -46,7 +46,9 @@ def git(root, *args):
 
 
 def tracked(root, *patterns):
-    return [line for line in git(root, "ls-files", "--", *patterns).splitlines() if line]
+    """The tracked files that match, without those deleted in the working tree and not committed yet."""
+    return [line for line in git(root, "ls-files", "--", *patterns).splitlines()
+            if line and os.path.isfile(os.path.join(root, line))]
 
 
 def plugins(root):
@@ -179,14 +181,15 @@ def check_references(root):
         name = os.path.basename(plugin)
         skills = {p.split("/")[-2] for p in tracked(root, f"{base}/skills/*/SKILL.md")}
         tools = {os.path.basename(p) for p in tracked(root, f"{base}/bin/*")}
+        agents = {os.path.basename(p)[:-3] for p in tracked(root, f"{base}/agents/*.md")}
         for path in tracked(root, base):
             if os.path.splitext(path)[1].lower() not in (".md", ".py", ".ts", ".json"):
                 continue
             with open(os.path.join(root, path), encoding="utf-8", errors="replace") as handle:
                 text = handle.read()
             for cited in sorted(set(re.findall(rf"\b{re.escape(name)}:([a-z][a-z0-9-]+)", text))):
-                if cited not in skills:
-                    problems.append(f"{path}: cites `{name}:{cited}`, which is not a skill of the plugin")
+                if cited not in skills and cited not in agents:
+                    problems.append(f"{path}: cites `{name}:{cited}`, which is neither a skill nor an agent of the plugin")
             if not path.endswith(".md"):
                 continue
             firsts = {span.split()[0] for span in re.findall(r"`([^`\n]+)`", text) if span.split()}
