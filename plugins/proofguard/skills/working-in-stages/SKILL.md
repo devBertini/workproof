@@ -5,6 +5,8 @@ description: Runs work that takes more than one step from the project's plan fil
 
 # Working in stages
 
+If `${user_config.proof_plans}` is false, this module is off: ignore this skill.
+
 The project's plan lives at `docs/ACTIVE-PLAN.json` in its git top-level folder. Change it only with `work-plan` (on the Bash PATH while this plugin is enabled), run from inside the project or with `--where <project folder>`:
 
 ```
@@ -22,7 +24,7 @@ work-plan finish                                                            # on
 
 ## The cycle
 
-1. **Split the order into stages a reader can check.** Each stage gets a done-when that names its proof: a test command, a build, a capture, a file to read. If you cannot name the proof, the stage is too vague; split it or sharpen it.
+1. **Split the order into stages a reader can check.** Each stage gets a done-when that names its proof: a test command, a build, a capture, a file to read. If you cannot name the proof, the stage is too vague; split it or sharpen it. Keep the proof short (seconds to a few minutes): soak runs, long measurements and "N runs in a row" run once, when the version is hardened before release, never as a stage's proof. A flaky test is fixed at its cause and proven by a short test that forces that cause.
 2. **Start one stage.** Only one stage is in progress at a time; `pause` it (with the reason) before starting another.
 3. **Write a note the moment something is decided or learned**, not at the end. After a compaction or a new session the plan and its notes are all that is left of the stage.
 4. **Close a stage on a named command that passes.** `done --bundle -- <command>` runs the command from the project folder, and the stage closes only if it exits 0, storing the command, exit code, duration, a hash of the whole output and its last lines as evidence. If the command fails, times out or is refused, the stage stays open and the output tells you why. The command runs without holding the plan, so notes and stages added meanwhile are kept; if the stage was paused or dropped meanwhile it is not closed. `--proof` is only for a proof that is not a command (a capture read, a device check): nothing is run or checked, the text is taken as typed, and the stage is shown as `[unverified]`; say exactly what was checked.
@@ -35,4 +37,7 @@ work-plan finish                                                            # on
 
 - The bundle command refuses outward or destructive commands (`git push`, anything with `--execute`, a recursive `rm`): run those yourself, with the approval they need, and close with `--proof` (the stage then shows as `[unverified]`).
 - A pipeline given to `--bundle` fails when any stage fails; wrap it as `-- bash -c '<pipeline>'`.
-- A plan longer than its stages (research, design) belongs in a document that the goal cites.
+- A plan longer than its stages (research, design) belongs in a document that the goal cites; a product version's stages follow skill `proofguard:developing-versions`.
+- With the option `compact_on_stage_close` on (currently `${user_config.compact_on_stage_close}`), a main-session turn that ends after `work-plan done`, with the plan's repository committed, a stage pending and none started, is compacted at its end. Before ending such a turn, `note` into the next stage what it needs that only the conversation holds.
+- On resume, invoke again the skills the `[now]` stage needs: a compaction brings invoked skills back only in part.
+- `finish` once every stage is closed and skill `proofguard:closing-deliveries` has moved what lasts into the project's documents.
