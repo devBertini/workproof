@@ -275,6 +275,30 @@ def nested_code(program, args, i):
     return None
 
 
+SSH_VALUED = set("BbcDEeFIiJLlmOopQRSWw")
+
+
+def ssh_remote_command(program, args):
+    """The command line ssh runs on the remote host (the words after the destination), or "" when there is none.
+
+    Its output comes back to this terminal, so it is judged like a local command."""
+    if program.lower() not in ("ssh", "ssh.exe"):
+        return ""
+    i = 0
+    while i < len(args):
+        word = args[i]
+        if word == "--":
+            i += 1
+            break
+        if word.startswith("-") and len(word) > 1:
+            flags = word[1:]
+            valued = next((k for k, c in enumerate(flags) if c in SSH_VALUED), None)
+            i += 2 if valued == len(flags) - 1 else 1  # `-i key`, `-vp 22` take the next word; `-p22` holds it
+            continue
+        break
+    return " ".join(args[i + 1:]) if i < len(args) else ""
+
+
 def check_code(runner, code, names, depth):
     if runner in SHELLS:
         return verdict(code.replace("\\", "/") if runner in BACKSLASH_SHELLS else code, names, depth + 1)
@@ -311,6 +335,11 @@ def verdict(command, names=None, depth=0):
         found = docker_verdict(program, args) or environment_dump(segment, program, args)
         if found:
             return found
+        remote = ssh_remote_command(program, args)
+        if remote:
+            found = check_code("sh", remote, names, depth)
+            if found:
+                return f"on the remote host: {found}"
         kind = secret_kind(program, names) if program else None
         if kind and not program.startswith("$"):
             return f"the secret file `{program}` ({kind}) is run or read as a command"

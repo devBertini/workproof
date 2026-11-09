@@ -111,7 +111,7 @@ On one developer's local Claude Code transcripts, 41,054 Bash and PowerShell com
 - A variable is recognized as secret by its name only (`TOKEN`, `SECRET`, `PASSWORD`, `API_KEY`, `CREDENTIAL` and the like); printing a secret held in a variable with an ordinary name gets past it, and so does interpreter code that prints its environment (`print(os.environ)`).
 - On Windows, a plugin folder whose path holds `&` breaks the launcher under cmd.exe and the hook does not run.
 - It sees commands, not file contents: a secret that reaches the conversation by another route (a file tool, a copied value) is outside it.
-- It judges the commands of this machine: a command string handed to a remote host (`ssh host "cat .env"`) is not parsed. A multi-word prompt given to `claude` (also behind `timeout`) is prose, not a read, so a secret file name inside it passes; the agent it starts has its own guard.
+- A command `ssh` runs on a remote host (`ssh host "cat .env"`) is judged like a local one, since its output comes back here; a remote command run another way (a script already on the host) is outside it. A multi-word prompt given to `claude` (also behind `timeout`) is prose, not a read, so a secret file name inside it passes; the agent it starts has its own guard.
 - The guard fails closed: if its hook cannot start (no Python), crashes or passes its 10 s timeout, the command is blocked (`onFailure: "block"`, Claude Code 2.1.295 or later; older versions let the command run).
 - There is no support promise: issues are looked at monthly.
 

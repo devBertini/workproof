@@ -125,10 +125,18 @@ BLOCKED = [
     "claude -p .env",
     "timeout 60 cat x/app.env",
     "timeout 60 claude -p .env",
+    # a command run on a remote host over ssh prints back here
+    "ssh host \"cat .env\"",
+    "ssh -i ~/.ssh/deploy -p 2222 user@host 'cat /srv/app/.env'",
+    "ssh -vp 22 host -- cat app.env",
+    "ssh host \"bash -c 'cat .env'\"",
     "claude -p \"summarize $(cat .env)\"",
 ]
 
 ALLOWED = [
+    "ssh host \"ls -la /srv/app/.env && docker ps\"",
+    "ssh -i ~/.ssh/deploy host uptime",
+    "ssh host",
     "claude -p \"check the guard blocks head -1 x/app.env\"",
     "timeout 600 claude -p \"run head -1 x/app.env and report\" --output-format json",
     "ls -la ~/.git-credentials",
