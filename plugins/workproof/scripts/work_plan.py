@@ -131,11 +131,17 @@ def load(path):
     while True:
         try:
             with open(path, encoding="utf-8") as f:
-                return json.load(f)
+                plan = json.load(f)
+            break
+        except ValueError as error:
+            sys.exit(f"work_plan: {path} is not a readable plan ({error}); fix or remove the file")
         except PermissionError:  # Windows: the file is being replaced at this very moment
             if not WINDOWS or time.monotonic() >= deadline:
                 raise
             time.sleep(0.01)
+    if not isinstance(plan, dict) or not isinstance(plan.get("stages"), list) or "goal" not in plan:
+        sys.exit(f"work_plan: {path} is not a readable plan (no goal or stage list); fix or remove the file")
+    return plan
 
 
 def replace_retrying(src, dst):

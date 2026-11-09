@@ -68,6 +68,7 @@ import hashlib
 import json
 import os
 import pathlib
+import platform
 import re
 import shlex
 import shutil
@@ -131,7 +132,7 @@ LANGUAGES = {
         headers=("ID", "Fluxo", "Entrada", "Prova", "Status", "Validado em"),
         markers=("<!-- placar:inicio -->", "<!-- placar:fim -->"),
         board=("validados", "revalidar", "sem prova", "so em aparelho", "quebrados"),
-        footer="*Recalculado em {date} por `scripts/check_flows.py`. Este placar não é escrito à mão.*"),
+        footer="*Recalculado em {date} por `check-flows`. Este placar não é escrito à mão.*"),
 }
 WORD_TO_STATUS = {word: status for lang in LANGUAGES.values()
                   for status, word in list(lang.labels.items()) + list(lang.stored.items())}
@@ -215,6 +216,14 @@ class Runtime:
 
     def now(self):
         return datetime.datetime.now()
+
+    def machine(self):
+        return platform.machine()
+
+
+def mac_arch(machine):
+    """The `arch=` of a macOS destination for this machine's processor: Apple silicon unless it reports Intel."""
+    return "x86_64" if (machine or "").lower() in ("x86_64", "amd64", "i386") else "arm64"
 
 
 def canon(status):
@@ -2058,7 +2067,7 @@ class Engine:
                   flush=True)
 
     def prune_state(self, state):
-        """Removes the state entries of flows no longer in the map (a project's move to this engine);
+        """Removes the state entries of flows no longer in the map;
         the map, every other entry and the raw results stay as they are. Nothing to remove writes nothing."""
         ghosts = sorted(fid for fid in state["flows"] if fid not in self.cells)
         if not ghosts:
@@ -2119,10 +2128,10 @@ class Engine:
         return self.cfg.device_classes.get(self.class_parts(cls)[1], self.cfg.device_kind)
 
     def destination(self, kind, cache):
-        """The -destination of a batch: this PC for a Mac project, --device when given, else the simulator the
+        """The -destination of a batch: this Mac for a macOS project, --device when given, else the simulator the
         configuration's "devices" names for the group's kind (resolved once per run)."""
         if self.cfg.platform == "macos":
-            return "platform=macOS,arch=arm64"
+            return f"platform=macOS,arch={mac_arch(getattr(self.rt, 'machine', lambda: 'arm64')())}"
         if self.args.device:
             return self.destination_for(self.args.device)
         if kind not in cache:
@@ -2771,7 +2780,7 @@ class Engine:
         if args.invalidate_classes and (args.reuse or args.changed or args.resume):
             raise Stop(2, "--invalidate-classes goes alone or with --only-stale")
         if args.device and self.cfg.platform == "macos":
-            raise Stop(2, "--device does not apply to a macOS project: its tests run on this PC")
+            raise Stop(2, "--device does not apply to a macOS project: its tests run on this Mac")
         if self.cfg.platform == DOCKER:
             refused = [flag for flag, on in (("--device", bool(args.device)), ("--derived-data", bool(args.derived_data)),
                                              ("--result-path", bool(args.result_path))) if on]
@@ -2920,7 +2929,7 @@ def parse_args(argv):
                     help="verify and write nothing: exit 1 on a broken flow or a typed Status cell")
     ap.add_argument("--prune-state", action="store_true",
                     help="remove from docs/.flows-state.json the entries of flows no longer in the map, print each, "
-                         "and change nothing else (a project's move to this engine)")
+                         "and change nothing else")
     ap.add_argument("--reuse", metavar="BUNDLE", nargs="+",
                     help="judge the flows whose every automated proof is in these existing .xcresult bundles, read side "
                          "by side (a docker project: JUnit XML files or folders of them)")

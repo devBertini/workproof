@@ -614,6 +614,20 @@ class Hook(unittest.TestCase):
             with open(pointer, encoding="utf-8") as f:
                 self.assertEqual(f.read().strip(), plan, command)
 
+    def test_a_plan_file_that_is_not_a_plan_gives_a_message_not_a_traceback(self):
+        repo = make_repo(os.path.join(self.root, "games", "Broken"))
+        os.makedirs(os.path.join(repo, "docs"))
+        path = os.path.join(repo, "docs", wp.NAME)
+        for text in ("{bad", "[1, 2]", '{"goal": "g"}'):
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(text)
+            for argv in (["show"], ["note", "1", "x"], ["add", "--title", "t", "--done-when", "d"]):
+                with self.subTest(text=text, argv=argv), self.assertRaises(SystemExit) as stop:
+                    wp.main(argv + ["--where", repo], root=self.root)
+                self.assertIn("is not a readable plan", str(stop.exception.code))
+            with open(path, encoding="utf-8") as f:
+                self.assertEqual(f.read(), text, "the file is left as it was")
+
     def test_show_is_read_only_and_never_moves_the_session_pointer(self):
         os.environ["CLAUDE_CODE_SESSION_ID"] = "sess-show"
         mine = make_repo(os.path.join(self.root, "games", "Mine"))

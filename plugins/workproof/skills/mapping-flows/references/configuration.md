@@ -1,6 +1,6 @@
 # scripts/flows.json and a new map
 
-The source of truth is class `Config` in `scripts/check_flows.py`. Only `project` is required; paths are relative to the project root.
+The source of truth is class `Config` in the plugin's `scripts/check_flows.py`. Only `project` is required; paths are relative to the project root.
 
 ## Keys
 
@@ -8,7 +8,7 @@ The source of truth is class `Config` in `scripts/check_flows.py`. Only `project
 |---|---|
 | `project` | The project's name; the root of the defaults below. |
 | `xcodeproj`, `scheme` | The Xcode project and scheme the app and UI targets run in (`<project>.xcodeproj`, `<project>`). |
-| `platform` | `ios`, `macos`, `docker` or `rust` (`ios`). `docker` means test runners that write JUnit XML (typically containers); `rust` takes the same keys, with `"framework": "nextest"` and a command that needs no container. A Mac project runs on `platform=macOS,arch=arm64` with no device and no `--device`. |
+| `platform` | `ios`, `macos`, `docker` or `rust` (`ios`). `docker` means test runners that write JUnit XML (typically containers); `rust` takes the same keys, with `"framework": "nextest"` and a command that needs no container. A Mac project runs on `platform=macOS` with the machine's own architecture, no device and no `--device`. |
 | `device_kind` | The kind the project's own classes run on: `phone`, `small`, `se` or `ipad` (`phone`). A kind only decides which simulator runs a class and which family (phone or tablet) it belongs to. |
 | `devices` | `{"<kind>": "<simulator name or UDID>"}`: the simulator each kind runs on, resolved through `xcrun simctl list`. Required for an iOS run unless `--device` is given. The engine never creates, boots or shuts down a simulator. |
 | `device_classes` | `{"<Class>": "<kind>"}` for a class that runs on another kind (`{"IPadLayoutUITests": "ipad"}`). With `--device`, classes of the other family print `waiting for a <kind> pass` and keep their status. |

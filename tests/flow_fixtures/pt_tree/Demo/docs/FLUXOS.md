@@ -7,7 +7,7 @@ A made-up app for the engine's tests.
 |---|---|---|---|---|---|
 | **0** | **0** (0%) | 0 | 0 | 0 | 0 |
 
-*Recalculado em 2026-01-01 por `scripts/check_flows.py`. Este placar não é escrito à mão.*
+*Recalculado em 2026-01-01 por `check-flows`. Este placar não é escrito à mão.*
 <!-- placar:fim -->
 
 ---

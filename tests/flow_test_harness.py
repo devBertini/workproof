@@ -38,7 +38,7 @@ BOARD = {"en": "| Total | validated | revalidate | no proof | device only | brok
 HEADERS = {"en": "| ID | Flow | Entry | Proof | Status | Validated on |",
            "pt-BR": "| ID | Fluxo | Entrada | Prova | Status | Validado em |"}
 FOOTERS = {"en": "*Recomputed on 2026-01-01 by `check-flows`. This scoreboard is not written by hand.*",
-           "pt-BR": "*Recalculado em 2026-01-01 por `scripts/check_flows.py`. Este placar não é escrito à mão.*"}
+           "pt-BR": "*Recalculado em 2026-01-01 por `check-flows`. Este placar não é escrito à mão.*"}
 MARKERS = {"en": ("<!-- scoreboard:start -->", "<!-- scoreboard:end -->"),
            "pt-BR": ("<!-- placar:inicio -->", "<!-- placar:fim -->")}
 MAP_NAMES = {"en": "FLOWS.md", "pt-BR": "FLUXOS.md"}

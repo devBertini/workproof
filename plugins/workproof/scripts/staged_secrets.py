@@ -47,7 +47,7 @@ def git(repo, *args):
 
 def staged_blobs(repo):
     """(path, blob sha, mode) of every added, copied, modified or renamed staged path; deletions hold no content."""
-    raw = git(repo, "diff", "--cached", "--raw", "-z", "--no-renames", "--diff-filter=ACMR").split(b"\0")
+    raw = git(repo, "diff", "--cached", "--raw", "--no-abbrev", "-z", "--no-renames", "--diff-filter=ACMR").split(b"\0")
     entries = []
     for i in range(0, len(raw) - 1, 2):
         meta = raw[i].decode().split()  # :oldmode newmode oldsha newsha status

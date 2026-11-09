@@ -116,7 +116,7 @@ PLACAR = ("<!-- scoreboard:start -->\n| Total | validated | revalidate | no proo
 HEADER_PT = "| ID | Fluxo | Entrada | Prova | Status | Validado em |\n|---|---|---|---|---|---|\n"
 PLACAR_PT = ("<!-- placar:inicio -->\n| Total | validados | revalidar | sem prova | so em aparelho | quebrados |\n"
              "|---|---|---|---|---|---|\n| **0** | **0** (0%) | 0 | 0 | 0 | 0 |\n\n"
-             "*Recalculado em 2026-01-01 por `scripts/check_flows.py`. Este placar não é escrito à mão.*\n"
+             "*Recalculado em 2026-01-01 por `check-flows`. Este placar não é escrito à mão.*\n"
              "<!-- placar:fim -->\n")
 PT_WORDS = {"validated": "validado", "revalidate": "revalidar", "no proof": "sem prova", "device only": "so em aparelho"}
 PT_STORED = dict(PT_WORDS, **{"device only": "só em aparelho"})

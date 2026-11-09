@@ -339,6 +339,11 @@ class DeviceAndDestinationTests(EngineCase):
         cmd = self.fake.xcode_calls()[0].cmd
         self.assertEqual(arg_after(cmd, "-destination"), "platform=macOS,arch=arm64")
         self.assertNotIn("-sdk", cmd, "a Mac run has no simulator sdk")
+        self.assertEqual(check_flows.mac_arch("x86_64"), "x86_64", "an Intel Mac runs its own architecture")
+        self.assertEqual(check_flows.mac_arch("arm64"), "arm64")
+        self.fake.machine = lambda: "x86_64"
+        self.run_engine(p, "--only-stale", "--invalidate-classes", "MacRulesTests", xcode=["auto"])
+        self.assertEqual(arg_after(self.fake.xcode_calls()[-1].cmd, "-destination"), "platform=macOS,arch=x86_64")
         self.assertEqual([c for c in self.fake.calls if "simctl" in c.cmd], [], "a Mac run never calls simctl")
         self.fake.reset()
         before = p.snapshot()
