@@ -69,7 +69,7 @@ The hooks start through `hooks/run-hook.cmd`, a launcher that finds Python. `wat
 
 Nothing else: no log, no cache, nothing in your home folder or in the plugin's own folders.
 
-**Environment variables it reads:** `CLAUDE_PLUGIN_OPTION_*` (the options below, set by Claude Code), `WORKPROOF_EXTRA_SECRET_NAMES`, `WORKPROOF_PLANS_ROOT`, `WORKPROOF_PLANS_SILENT`, `WORKPROOF_COMPACT_ON_STAGE_CLOSE`, `WORKPROOF_REFUSE_INHERITING_AGENTS`, `WORKPROOF_COMMIT_*`, `CLAUDE_CODE_SESSION_ID`, `CLAUDE_CODE_GIT_BASH_PATH`, `COMSPEC`. The secret guard reads the names of variables in a command, never their values.
+**Environment variables it reads:** `CLAUDE_PLUGIN_OPTION_*` (the options below, set by Claude Code), `WORKPROOF_EXTRA_SECRET_NAMES`, `WORKPROOF_PLANS_ROOT`, `WORKPROOF_PLANS_SILENT`, `WORKPROOF_COMPACT_ON_STAGE_CLOSE`, `WORKPROOF_REFUSE_INHERITING_AGENTS`, `WORKPROOF_COMMIT_*`, `WORKPROOF_BUNDLE_REFUSE`, `CLAUDE_CODE_SESSION_ID`, `CLAUDE_CODE_GIT_BASH_PATH`, `COMSPEC`. The secret guard reads the names of variables in a command, never their values.
 
 **Context cost:** about 1,900 tokens in every session (the descriptions of 11 skills and 5 agents, from `claude plugin details`); a skill's text is loaded only when it is used. The hooks add no tokens unless they print (the plan at session start, a block's reason).
 
@@ -219,7 +219,7 @@ verify-run run [--cwd <dir>] [--timeout N] [--shell] -- <command...>   # prints 
 verify-run check <json | file | ->                                      # validates such an object
 ```
 
-`run` exits 0 when the command passed, 1 when it failed or timed out, 2 when it was refused or misused. A pipeline fails when any of its stages fails. It never runs a command carrying `--execute`, a `git ... push`, or an `rm` with a recursive flag. This is a deliberately conservative check on the words of the command line, not a sandbox.
+`run` exits 0 when the command passed, 1 when it failed or timed out, 2 when it was refused or misused. A pipeline fails when any of its stages fails. It never runs a `git ... push` or an `rm` with a recursive flag, nor a command carrying a word you list in `WORKPROOF_BUNDLE_REFUSE` (comma separated, for a project's own outward flags: `--publish, terraform apply`). This is a deliberately conservative check on the words of the command line, not a sandbox.
 
 ### Where the project is
 

@@ -3,16 +3,17 @@ name: developing-versions
 description: Runs a version of any product (app, game, service, site) from spec to release in thin slices - a short spec and a round with the product's decision maker, the foundation, one slice per stage (contract, core, screens, proof, close), reviews only where they pay, time budgets for test loops, triage of failures and notes, and a hardening pass sized to the version. Use when a product or version starts or is planned, a slice is planned, built or closed, notes arrive mid-version, a test loop is slow, or before declaring a version finished.
 ---
 
-If `${user_config.flow_map}` is false, this module is off: ignore this skill.
-
 # Developing versions
+
+If `${user_config.flow_map}` is false, this module is off: ignore this skill.
 
 Ship the smallest useful version with quality, then improve it version by version. Every step, check and document must pay for its time; leave out what does not.
 
 ## When it applies
 
 - A new product, or a version: a release that was ordered (1.0, an update). Version 1 holds the main flow and what it needs; the rest goes to the SPEC's "Later" list.
-- A version's stages go into the project's open plan, or into a new plan once that one is finished (skill `workproof:working-in-stages`; `work-plan new` refuses while a plan exists). A one-step fix needs no stage.
+- A version's stages go into the project's open plan, or into a new plan once that one is finished (skill `workproof:working-in-stages`; `work-plan new` refuses while a plan exists). A one-step fix needs no stage. With the proof plans module off, keep the same stages in the project's own plan document.
+- A project without a flow map (no `docs/FLOWS.md`) follows the same phases: the SPEC's flow table is its list of flows, each slice's done-when names the test command that proves its flows instead of `check-flows`, and the gate reads that table. Start a map (`check-flows --init`) when the flows outgrow one table.
 
 ## Where facts live
 
@@ -50,14 +51,14 @@ An existing spec or plan document is not rewritten up front; it shrinks as each 
 
 A slice starts from a green main; after another lane merges, the flows that merge reached run first.
 
-- **A slice's proof is short:** unit, property and loopback tests that finish in seconds, written with the code. Runs that take minutes (soak, leak and sustained-rate runs, long latency or throughput measurements, fuzzing) belong to hardening, never to a slice's done-when; the exception is a spike whose measurement picks the architecture. The same holds for repetition: "N runs in a row" of a suite or of the whole app is a hardening run, done once. A flaky test is fixed at its cause (a timing, an order or a shared resource) and proven by a short test that forces that cause, or by repeating only that test in seconds; the repeated full-suite run waits for hardening. A defect such a run finds outside the current flow joins hardening unless it blocks the next slice.
+- **A slice's proof is short:** unit, property and loopback tests that finish in seconds, written with the code. The rule for long and repeated runs and for a flaky test is in skill `workproof:working-in-stages` (step 1): they belong to hardening, never to a slice's done-when. Here that covers soak, leak and sustained-rate runs, long latency or throughput measurements and fuzzing; the exception is a spike whose measurement picks the architecture. A defect a hardening run finds outside the current flow joins hardening unless it blocks the next slice.
 - **After a merge,** run the tests the merge reaches (the changed packages and those that depend on them); the whole suite runs at each milestone.
 
 ## Reviews: only where they pay
 
 - **A risky slice:** one independent review of its contract and core, started in the background once the core's tests are green, while the screens go on; its findings become `[defect]` stages.
 - **Everything else:** one pass per milestone over the slices since the last pass; at hardening, one over what no pass covered.
-- **The brief:** `references/templates.md`. The reviewer reads only: it builds nothing and runs no test, since the session's runs hold the build folder and the machine.
+- **The brief:** `references/templates.md`. It forbids building and running tests, which a reviewer agent may otherwise do: this review runs beside the session, whose own runs hold the build folder and the machine.
 - A review pass whose findings were all declined or style for two versions is cut at the retrospective.
 
 ## Time budgets

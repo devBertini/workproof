@@ -766,7 +766,7 @@ class Bundle(unittest.TestCase):
 
     def test_an_outward_command_is_refused_and_never_run(self):
         marker = os.path.join(self.root, "ran")
-        for command in ([PY, "-c", f"open({marker!r}, 'w')", "--execute"],
+        for command in (["bash", "-c", f"git push; touch {marker}"],
                         ["git", "push", "origin", "main"],
                         ["bash", f"{self.root}/scripts/my-git.sh", "push"]):
             self.assertIn("refused", self.refused(*command))

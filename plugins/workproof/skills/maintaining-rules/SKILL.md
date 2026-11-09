@@ -25,11 +25,11 @@ One home per fact; other places point to it.
 - Only what Claude cannot work out from the repository and what changes behavior. Imperative, with the reason when it is not obvious.
 - No author, date, history or quotation ("was X, now Y", "decided on"): every loaded word is paid for in each session, and git keeps who and when. A date stays only where it changes what Claude does (a deadline, an expiry); records in `docs/` keep theirs.
 - Replace old text; never append a log. A CLAUDE.md stays short (under 200 lines); a longer one moves code-area instructions into path-scoped rules.
-- A skill: a gerund name (`planning-work`, `using-simulators`); a third-person description that says what it does, then "Use when..." with its triggers (under 1,024 characters); `SKILL.md` under 500 lines, detail in `references/` one level deep; scripts with tests beside them.
+- A skill: a gerund name (`reviewing-migrations`, `running-benchmarks`); a third-person description that says what it does, then "Use when..." with its triggers (under 1,024 characters); `SKILL.md` under 500 lines, detail in `references/` one level deep; scripts with tests beside them.
 - A new skill is written when real work needs it, not ahead of time.
 
 ## After a change
 
-- Prove it: `claude plugin validate <plugin folder>` for a plugin, the tests of any changed script, and a fresh session (or `/reload-plugins`) that shows the skill or hook loaded.
+- Prove it: `claude plugin validate <plugin folder>` for a plugin, the tests of any changed script (`claude plugin test <plugin folder>` for a hooks module), and a fresh session (or `/reload-plugins`) that shows the skill or hook loaded. A changed skill of a plugin that has an eval suite reruns its cases (`claude plugin eval <plugin folder> --case <name>`), which bills the account for each run.
 - A hook that fails closed blocks every matching tool call while its script is missing: move or rename a plugin's source folder only after pointing its marketplace at the new path, then run `/reload-plugins` in each open session.
 - Commit the change on its own, with a message that names the rule, never mixed into feature work.

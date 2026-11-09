@@ -3,9 +3,9 @@ name: mapping-flows
 description: Keeps a project's flow map (docs/FLOWS.md) true with the check-flows engine - the cycle of a change, what each status means and why only the engine writes it, what a flow may cite as proof, how to choose what to rerun, the modes and exit codes, merging maps from parallel worktrees, and scripts/flows.json. Use when a project has a flow map, before changing its code, when deciding what to retest, before running the flow check, or when adding, renaming or splitting a flow or a test the map cites.
 ---
 
-If `${user_config.flow_map}` is false, this module is off: ignore this skill.
-
 # Mapping flows
+
+If `${user_config.flow_map}` is false, this module is off: ignore this skill.
 
 A project with a map holds `docs/FLOWS.md` (the map), `docs/.flows-state.json` (what runs proved, written by the engine) and `scripts/flows.json` (its configuration). Run the engine with `check-flows <mode>` (on the Bash PATH while this plugin is enabled) from inside the project, or with `--project <root>`; `--help` lists the modes. A map in Brazilian Portuguese (`docs/FLUXOS.md`, statuses `validado`, `revalidar`, `sem prova`, `so em aparelho`, `quebrado`, scoreboard `placar`) works unchanged: the engine reads the language from the map and writes it back in the same language. A new map is started with `check-flows --init` (`--language pt-BR` for Portuguese).
 

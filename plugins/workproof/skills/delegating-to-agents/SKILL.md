@@ -21,11 +21,11 @@ Not a reason: a lookup you can do in a few tool calls, a check you could run inl
 |---|---|---|
 | Independent review, adversarial verification, a reader without bias (edits nothing) | `reviewer` | opus, high |
 | A failure whose cause is unknown: reproduce, fix at the cause, prove | `debugger` | opus, high |
-| Decided work to a written spec: edits, routine code and tests, a document; research and measurement to a written question list | `implementer` | sonnet, medium |
+| Decided work to a written spec: edits, routine code and tests, a document, a measurement run to a written list | `implementer` | sonnet, medium |
 | Design or taste: architecture, a plan, a game design, an art or audio direction, store text | `designer` | opus, medium |
-| Mechanical: a known suite or script, a search, an extraction, a sweep, a summary with quotes | `runner` | haiku, medium |
+| Mechanical: a known suite or script, a search, an extraction, a sweep, a summary with quotes; facts gathered from the web to a written question list, each with its address | `runner` | haiku, medium |
 
-- The activity picks the agent and the agent's default is the model: never choose a model by the size or importance of the work. Decided work to a written spec is `implementer`, however long. `designer` only when the deliverable is a proposal judged by taste or architecture; gathering facts or numbers for a decision is research, not design.
+- The activity picks the agent and the agent's default is the model: never choose a model by the size or importance of the work. Decided work to a written spec is `implementer`, however long. `designer` only when the deliverable is a proposal judged by taste or architecture; gathering facts or numbers for a decision is research, not design. Research that needs the web goes to `runner` (facts) or `designer` (a proposal built on them): `implementer`, `reviewer` and `debugger` have no web tools.
 - Raise effort before the model: `high` for a risky slice (a security boundary, cryptography, privilege, concurrency across processes) or after medium fell short; `xhigh` for the hardest long problem after high fell short. Work with no choice left (renames, sweeps, formatting, running a known suite) goes to `runner`.
 - A `model` above the agent's default is only for work that fell short at high effort on the default; the plugin's hook asks the user before such a call runs.
 - Generic agents (`general-purpose`, `fork`, `Plan`) and `Explore` run on the session's model unless the call names one: pass `model: haiku` for a search (`sonnet` when it must judge). With the option `refuse_inheriting_agents` on (currently `${user_config.refuse_inheriting_agents}`), the hook refuses them without a cheaper model.

@@ -84,7 +84,7 @@ def main():
     print(f"Blocked by workproof (secret-guard module): {reason}. Secrets stay out of the conversation: refer to "
           f"them by path and let the tool that needs them read them. To add a line to such a file without reading "
           f"it, append with the shell (`>>`); creating it with Write is allowed. If this is a false alarm, ask the "
-          f"user instead of working around the guard.", file=sys.stderr)
+          f"user instead of working around the guard (skill workproof:guarding-secrets).", file=sys.stderr)
     return 2
 
 

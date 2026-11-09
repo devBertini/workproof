@@ -33,6 +33,10 @@ MAX_FILES = 512
 TEXT_SUFFIXES = {".md", ".json", ".py", ".ts", ".tsx", ".cmd", ".sh", ".txt", ".toml", ".yml", ".yaml", ".svg", ""}
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 EXECUTABLE = ("scripts/run-hook.cmd", "plugins/*/hooks/*.cmd", "plugins/*/bin/*")
+# Hyphenated words that open a code span in a document and are not commands of the plugin: the cross-reference check
+# takes any other such word for a bin/ command, so a renamed or missing tool is caught.
+NOT_COMMANDS = {"general-purpose", "no-new-privileges", "opt-level", "swift-test", "reviewing-migrations",
+                "running-benchmarks"}
 PLAIN_SCALAR_TRAPS = (": ", " #")
 RESERVED_STARTS = tuple("[{&*!|>%@`\"'")
 
@@ -174,6 +178,7 @@ def check_references(root):
         base = os.path.relpath(plugin, root).replace("\\", "/")
         name = os.path.basename(plugin)
         skills = {p.split("/")[-2] for p in tracked(root, f"{base}/skills/*/SKILL.md")}
+        tools = {os.path.basename(p) for p in tracked(root, f"{base}/bin/*")}
         for path in tracked(root, base):
             if os.path.splitext(path)[1].lower() not in (".md", ".py", ".ts", ".json"):
                 continue
@@ -182,6 +187,12 @@ def check_references(root):
             for cited in sorted(set(re.findall(rf"\b{re.escape(name)}:([a-z][a-z0-9-]+)", text))):
                 if cited not in skills:
                     problems.append(f"{path}: cites `{name}:{cited}`, which is not a skill of the plugin")
+            if not path.endswith(".md"):
+                continue
+            firsts = {span.split()[0] for span in re.findall(r"`([^`\n]+)`", text) if span.split()}
+            for word in sorted(w for w in firsts if re.fullmatch(r"[a-z]+(-[a-z]+)+", w)):
+                if word not in tools and word not in skills and word not in NOT_COMMANDS:
+                    problems.append(f"{path}: names `{word}`, which is neither a bin/ command nor a skill of the plugin")
     return problems
 
 

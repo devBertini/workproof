@@ -223,8 +223,6 @@ class BatchShims(Base):
 
 class Refusals(Base):
     OUTWARD = [
-        ("--execute", [PY, "-c", "pass", "--execute"]),
-        ("--execute in a shell line", ["sh", "-c", "echo hi --execute"]),
         ("git push", ["git", "push"]),
         ("git push with options before", ["git", "-C", "/x", "push", "origin", "main"]),
         ("git push in a shell line", ["sh", "-c", "git push"]),
@@ -251,9 +249,24 @@ class Refusals(Base):
 
     def test_a_refused_command_does_not_run_even_when_it_would_leave_a_trace(self):
         marker = os.path.join(self.dir, "ran")
-        p = self.tool("run", "--cwd", self.dir, "--", PY, "-c", f"open({marker!r}, 'w')", "--execute")
+        p = self.tool("run", "--cwd", self.dir, "--", "bash", "-c", f"git push; touch {marker}")
         self.assertEqual(p.returncode, 2)
         self.assertFalse(os.path.exists(marker))
+
+    def test_a_project_adds_its_own_refused_words_through_the_environment(self):
+        marker = os.path.join(self.dir, "ran")
+        command = [PY, "-B", TOOL, "run", "--cwd", self.dir, "--", PY, "-c", f"open({marker!r}, 'w')", "--publish"]
+        env = dict(os.environ, WORKPROOF_BUNDLE_REFUSE="--execute, --publish\nterraform apply")
+        p = subprocess.run(command, env=env, capture_output=True, text=True, timeout=60)
+        self.assertEqual(p.returncode, 2, p.stderr)
+        self.assertIn("carries `--publish`, which WORKPROOF_BUNDLE_REFUSE lists", p.stderr)
+        self.assertFalse(os.path.exists(marker))
+        env.pop("WORKPROOF_BUNDLE_REFUSE")
+        p = subprocess.run(command, env=env, capture_output=True, text=True, timeout=60)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertTrue(os.path.exists(marker), "without the variable the flag is an ordinary word")
+        self.assertEqual(verify_run.refused_words({"WORKPROOF_BUNDLE_REFUSE": " a ,, b\n"}), ["a", "b"])
+        self.assertIn("terraform apply", verify_run.refusal(["terraform", "apply"], {"WORKPROOF_BUNDLE_REFUSE": "terraform apply"}))
 
     def test_harmless_commands_with_look_alike_words_are_not_refused(self):
         victim = os.path.join(self.dir, "file.txt")
@@ -267,7 +280,8 @@ class Refusals(Base):
 
     def test_the_refusal_is_the_same_through_the_module_api(self):
         self.assertIsNone(verify_run.refusal(["python", "-m", "unittest"]))
-        self.assertIn("--execute", verify_run.refusal(["deploy.py", "--execute"]))
+        self.assertIsNone(verify_run.refusal(["deploy.py", "--execute"], {}))
+        self.assertIn("recursive rm", verify_run.refusal(["rm", "-rf", "x"], {}))
         with self.assertRaises(verify_run.Refused):
             verify_run.run_command(["git", "push"], self.dir)
 

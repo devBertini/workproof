@@ -19,8 +19,8 @@ Go through every step; one that does not apply is skipped, not faked.
    - Merged worktrees: `git worktree remove <path>`, then `git branch -d <branch>`.
 4. **Documents:** the project's `CLAUDE.md` (state, new pitfalls, new decisions of the user) and the `docs/` the change touched.
 5. **Instructions:** each correction from the user in this delivery and each gap a skill or rule had is written into its home now (skill `workproof:maintaining-rules`).
-6. **Plan:** stages closed with their proof (skill `workproof:working-in-stages`); `work-plan finish` when all are closed, or the open stage's notes say where the work stopped.
+6. **Plan** (a project that keeps one; skip when the proof plans module is off or there is no plan): stages closed with their proof (skill `workproof:working-in-stages`). With a stage still open, its notes say where the work stopped and what comes next. With every stage closed, the next step goes into the project's `CLAUDE.md` first, then `work-plan finish`, which deletes the plan and its notes.
 7. **Git:** `git status` shown; every proven stage committed on its own (`guarded-commit <repo> "<message>" <paths>`); anything left uncommitted is named with the reason. Nothing is pushed without the user's yes.
 8. **Report:** what changed, what failed or is unverified, what you said earlier that proved wrong, which instructions changed and why, and what is left for the user, if anything.
-9. **Fresh context:** when a milestone or the delivery closed, write the next step into the plan's notes and suggest `/clear`; the plan is printed back at the next session start.
+9. **Fresh context:** when a milestone or the delivery closed, check that the next step is written where step 6 put it (the open stage's notes, or the project's `CLAUDE.md` when no plan is left) and suggest `/clear`; an open plan is printed back at the next session start.
 10. **Last call, only if needed:** one question with the decisions and approvals still open.

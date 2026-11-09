@@ -14,5 +14,5 @@ If `${user_config.rust}` is false, this module is off: ignore this skill.
 - A build or suite over a minute runs in the background with its own log (skill `workproof:running-long-commands`).
 - Profile before changing a slow run.
 - A running executable cannot be replaced on Windows: stop it before a build that writes the same path, or install to another folder.
-- A project with a flow map proves its flows with Rust tests (skill `workproof:mapping-flows`).
+- A project with a flow map (`docs/FLOWS.md`) proves its flows with Rust tests (skill `workproof:mapping-flows`); without one, this line does not apply.
 - `target/` is ignored by git; remove it when the project's work ends and disk is short.

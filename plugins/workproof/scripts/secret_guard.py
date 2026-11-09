@@ -394,7 +394,8 @@ def main():
         return 0
     print(f"Blocked by workproof (secret-guard module): {reason}. Secrets stay out of the conversation: refer to "
           f"them by path and let the tool that needs them read them. Listing, testing, creating or removing a file "
-          f"is allowed. If this is a false alarm, ask the user instead of working around the guard.", file=sys.stderr)
+          f"is allowed. If this is a false alarm, ask the user instead of working around the guard (skill "
+          f"workproof:guarding-secrets).", file=sys.stderr)
     return 2
 
 

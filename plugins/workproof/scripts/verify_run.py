@@ -16,8 +16,9 @@ refused, since nothing would run it as a pipeline. On Windows the bash used is G
 CLAUDE_CODE_GIT_BASH_PATH, else the first bash on PATH outside System32, else Git's usual install folder), never the
 WSL launcher.
 
-Refused, never run: any command that carries `--execute`, `git push` (git, then push anywhere later in the command
-line, so a wrapper whose name ends in `-git` is covered), and `rm` with a recursive flag. The check is on the words of
+Refused, never run: `git push` (git, then push anywhere later in the command line, so a wrapper whose name ends in
+`-git` is covered), `rm` with a recursive flag, and any command that carries a word listed in the environment variable
+WORKPROOF_BUNDLE_REFUSE (comma or newline separated: a project's own outward flags, `--publish, terraform apply`). The check is on the words of
 the command line, wherever they sit (`sh -c '...'` included), so it is deliberately conservative: `git log --grep push`
 is refused too. It is a guard against outward and destructive actions that need a person's approval, not a sandbox.
 
@@ -70,11 +71,21 @@ class Refused(Exception):
     """The command is one this tool never runs; the message says why."""
 
 
-def refusal(words):
+REFUSE_ENV = "WORKPROOF_BUNDLE_REFUSE"
+
+
+def refused_words(environ=None):
+    """The words a project adds to the refusals through WORKPROOF_BUNDLE_REFUSE, comma or newline separated."""
+    value = (os.environ if environ is None else environ).get(REFUSE_ENV, "")
+    return [word.strip() for word in re.split(r"[,\n]", value) if word.strip()]
+
+
+def refusal(words, environ=None):
     """The reason a command line is refused, or None. `words` is a list of strings (argv or the shell line's words)."""
     text = " ".join(words)
-    if "--execute" in text:
-        return "carries --execute (an outward write: get approval first)"
+    for word in refused_words(environ):
+        if word in text:
+            return f"carries `{word}`, which {REFUSE_ENV} lists (get approval first)"
     if GIT_PUSH.search(text):
         return "is a git push (get approval first)"
     if RM_RECURSIVE.search(text):

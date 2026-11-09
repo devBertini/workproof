@@ -1,9 +1,9 @@
 ---
 type: tool_used
 tool: Skill
-input_match: "secret-guard"
+input_match: "guarding-secrets"
 min: 1
 arm: with-only
 ---
 
-The secret-guard skill was loaded.
+The guarding-secrets skill was loaded.
