@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
-import { argvOf, classify, problemOf } from './watch-run'
+import { argvOf, baseName, classify, problemOf } from './watch-run'
+import { setStatus } from './status'
 
 const TOOL = 'mcp__workproof__watch_run'
 const END = /DONE rc=/
@@ -33,6 +34,23 @@ describe('argvOf and problemOf', () => {
     expect(problemOf({ log: 't.log', fatal: 'x' })).toBe('log must be an absolute path')
     expect(problemOf({ log: '/t.log', fatal: '(' })).toBe('fatal is not a regular expression: (')
     expect(problemOf({ log: '/t.log', fatal: 'x', progress: 'ok' })).toBeUndefined()
+  })
+})
+
+describe('the status line', () => {
+  test('a log is named by its file, whichever separator the path uses', async () => {
+    expect(baseName('/x/build/test.log')).toBe('test.log')
+    expect(baseName('C:\\work\\build\\test.log')).toBe('test.log')
+  })
+
+  test('two mods share the one line: clearing a part keeps the other', async () => {
+    const shown: (string | undefined)[] = []
+    const engine = { ui: { status: (text: string | undefined) => void shown.push(text) } } as any
+    setStatus(engine, 'a', 'watching')
+    setStatus(engine, 'b', 'stage 2 closed')
+    setStatus(engine, 'b', undefined)
+    setStatus(engine, 'a', undefined)
+    expect(shown).toEqual(['watching', 'watching | stage 2 closed', 'watching', undefined])
   })
 })
 

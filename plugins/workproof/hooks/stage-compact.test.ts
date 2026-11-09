@@ -100,6 +100,7 @@ function engine(on: any, files: Files) {
   const commands: string[] = []
   const logs: string[] = []
   const reads: string[] = []
+  const status: (string | undefined)[] = []
   mock.env(on, files.env ?? {})
   const clock = mock.clock(on)
   on('tool.call', () => ({ result: { stdout: files.stdout ?? DONE_OUT, stderr: '', interrupted: false } }))
@@ -123,14 +124,17 @@ function engine(on: any, files: Files) {
     compacted.push(e.instructions)
     return { messages: [{ role: 'user', text: 'summary', toolUses: [] }] }
   })
-  on('ui.status', () => ({ value: undefined }))
+  on('ui.status', (_: unknown, e: any) => {
+    status.push(e.text)
+    return { value: undefined }
+  })
   on('ui.log', (_: unknown, e: any) => {
     logs.push(e.text)
     return { value: undefined }
   })
   // The test engine resolves a path as the host does (a drive letter and backslashes on Windows).
   const norm = (paths: string[]) => paths.map(p => p.replaceAll('\\', '/').replace(/^[A-Za-z]:/, ''))
-  return { compacted, commands, logs, clock, get reads() { return norm(reads) } }
+  return { compacted, commands, logs, status, clock, get reads() { return norm(reads) } }
 }
 
 const TURN = { turnId: 't1', reason: 'answer', answer: 'ok', durationMs: 1, isAborted: false }
@@ -156,6 +160,24 @@ test('with the option off (the default) nothing compacts', async ($, on) => {
   await seen.clock.settle()
   expect(seen.compacted.length).toBe(0)
   expect(seen.logs).toEqual([])
+  expect(seen.status).toEqual([])
+})
+
+test('the status line announces the compaction only while it is on, and is cleared at the turn end', OPTS, async ($, on) => {
+  const seen = engine(on, { plan: plan([done2, next3]), git: '', tokens: 400_000 })
+  await $.tool.call(CLOSE)
+  expect(seen.status).toEqual(['stage 2 closed: compaction at the end of the turn, if everything is committed'])
+  await $.turn.complete(TURN as any)
+  await seen.clock.settle()
+  expect(seen.status.at(-1)).toBeUndefined()
+})
+
+test('the environment variable turns compaction on without the option', async ($, on) => {
+  const seen = engine(on, { plan: plan([done2, next3]), git: '', tokens: 400_000, env: { WORKPROOF_COMPACT_ON_STAGE_CLOSE: 'on' } })
+  await $.tool.call(CLOSE)
+  await $.turn.complete(TURN as any)
+  await seen.clock.settle()
+  expect(seen.compacted.length).toBe(1)
 })
 
 test('a relative label resolves under the plans root option', WITH_ROOT, async ($, on) => {

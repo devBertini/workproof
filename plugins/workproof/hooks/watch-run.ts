@@ -3,6 +3,7 @@
 // run: the first fatal line, a hang (no new line for `idle` seconds), a missing log or a watcher failure.
 // The run's own end is not a wake: the background Bash command that writes the log already notifies.
 import type { EngineInterface, Register } from 'claude-code'
+import { setStatus } from './status'
 
 const NAME = 'watch_run'
 const TOOL = 'mcp__workproof__watch_run'
@@ -74,8 +75,9 @@ export function problemOf(input: Input): string | undefined {
   return undefined
 }
 
-function baseName(path: string): string {
-  return path.slice(path.lastIndexOf('/') + 1)
+// The log's file name, for a path with either separator (a Windows path may come with backslashes).
+export function baseName(path: string): string {
+  return path.slice(Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\')) + 1)
 }
 
 // The first Python 3 that runs, as the bin/ wrappers probe it (python3, python, py -3); the Windows Store stub fails.
@@ -93,7 +95,7 @@ function interpreter($: EngineInterface): Promise<string[] | undefined> {
 
 function showStatus($: EngineInterface): void {
   const lines = [...watches.values()].map(w => `${NAME} ${w.name}: ${w.line}`.slice(0, STATUS_WIDTH))
-  $.ui.status(lines.length > 0 ? lines.join(' | ') : undefined)
+  setStatus($, NAME, lines.length > 0 ? lines.join(' | ') : undefined)
 }
 
 async function wake($: EngineInterface, text: string): Promise<void> {

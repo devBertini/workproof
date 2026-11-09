@@ -12,12 +12,15 @@
 // path when no plans root is set, else a path from the plans root; failing that (output piped through tail or
 // grep) the session's pointer file, which exists only when a plans root is set. Without either, nothing is done.
 import type { EngineInterface, Register } from 'claude-code'
+import { setStatus } from './status'
 
 const ARG = String.raw`(?:"[^"]*"|'[^']*'|\S+)`
 const DONE = new RegExp(String.raw`\bwork[-_]plan(?:\.py)?\s+(?:--where\s+${ARG}\s+)?done\s+(\d+)\b`)
 const LABEL = /^ACTIVE PLAN (.+?): \d+ done/m
 const HEADLESS = /not available in a headless/
 const ABSOLUTE = /^(\/|[A-Za-z]:\/)/
+const ON = new Set(['true', '1', 'yes', 'on'])
+const STATUS = 'stage-compact'
 
 type Stage = { id: number; title: string; status: string; result?: string; proof?: string; notes?: string[] }
 type Plan = { goal: string; stages: Stage[] }
@@ -28,6 +31,14 @@ export type Verdict =
   | { act: 'forget'; why: string }
 
 let closed: Closed | undefined
+
+// Whether compaction is on: the plugin option, or WORKPROOF_COMPACT_ON_STAGE_CLOSE (plugin options live only in user
+// settings; the variable turns it on from the `env` block of any settings file).
+export async function compactionOn($: EngineInterface, option: unknown): Promise<boolean> {
+  if (option === true) return true
+  const value = await $.env.get('WORKPROOF_COMPACT_ON_STAGE_CLOSE').catch(() => undefined)
+  return ON.has(String(value ?? '').trim().toLowerCase())
+}
 
 // The stage a `work-plan done` closed and its plan file; `root` is the plans root ('' when none is set).
 // Whether the stage really closed is read from the plan on disk at the turn end (verdictOf).
@@ -117,7 +128,7 @@ export async function afterTurn($: EngineInterface, e: { agentId?: string; reaso
   const seen = closed
   if (seen === undefined || e.agentId !== undefined || e.reason !== 'answer') return
   const verdict = await check($, seen)
-  $.ui.status(undefined)
+  setStatus($, STATUS, undefined)
   if (verdict.act === 'defer') {
     $.ui.log(`Compaction after stage ${seen.stage} deferred: ${verdict.why}`)
     return
@@ -135,6 +146,7 @@ export const register: Register = (on, options) => {
     const ran = await next(e)
     if (e.agentId !== undefined || !DONE.test(e.command) || ran.deny !== undefined || ran.isError === true) return ran
     try {
+      if (!(await compactionOn($, options.compact_on_stage_close))) return ran
       const stdout = (ran.result as { stdout?: unknown } | undefined)?.stdout
       if (typeof stdout !== 'string') return ran
       const root = rootOf(options.plans_root, await $.env.get('PROOF_PLANS_ROOT'))
@@ -145,7 +157,7 @@ export const register: Register = (on, options) => {
       }
       if (found !== undefined) {
         closed = found
-        $.ui.status(`stage ${found.stage} closed: compaction at the end of the turn, if everything is committed`)
+        setStatus($, STATUS, `stage ${found.stage} closed: compaction at the end of the turn, if everything is committed`)
       }
     } catch {
       // A stage close this hook cannot read is no compaction; the call's own result stands.
