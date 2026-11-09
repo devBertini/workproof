@@ -24,6 +24,7 @@ BIN = os.path.join(os.path.dirname(HERE), "bin", "guarded-commit")
 HELPER = os.path.join(HERE, "staged_secrets.py")
 SH = find_sh()
 EXTRA_ENV = secret_patterns.EXTRA_NAMES_ENV
+PLAIN_ENV = secret_patterns.EXTRA_NAMES_PLAIN_ENV
 
 # label -> (builder of a file's text, the kind reported)
 SECRETS = {
@@ -37,7 +38,7 @@ SECRETS = {
 def guarded(*args, env=None):
     if not SH:
         raise unittest.SkipTest("no POSIX shell")
-    full_env = {k: v for k, v in os.environ.items() if k != EXTRA_ENV}
+    full_env = {k: v for k, v in os.environ.items() if k not in (EXTRA_ENV, PLAIN_ENV)}
     full_env.update(env or {})
     return subprocess.run([SH, posix(BIN), *args], capture_output=True, text=True, env=full_env, timeout=60)
 
@@ -197,6 +198,12 @@ class RefusesNames(Repo):
         self.assertEqual(guarded(self.d, "v", "prod.vault", env={EXTRA_ENV: "*.vault"}).returncode, 1)
         self.assertEqual(self.staged(), "")
         self.assertEqual(guarded(self.d, "v", "prod.vault").returncode, 0)
+
+    def test_extra_names_from_the_plain_variable_apply_too(self):
+        self.w("prod.vault", "x")
+        self.assertEqual(guarded(self.d, "v", "prod.vault", env={PLAIN_ENV: "*.vault"}).returncode, 1)
+        self.assertEqual(guarded(self.d, "v", "prod.vault", env={EXTRA_ENV: "*.other", PLAIN_ENV: "*.vault"}).returncode, 1)
+        self.assertEqual(self.staged(), "")
 
 
 class RefusesContent(Repo):

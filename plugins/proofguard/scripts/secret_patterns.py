@@ -2,7 +2,8 @@
 
 SECRET_NAMES lists file names (matched against a path with `/` separators) that normally hold credentials.
 SECRET_CONTENT lists token formats that their vendors publish; the matched value is never printed, only its kind.
-Users add file names through the `extra_secret_names` plugin option (glob patterns), read by `extra_names_from_env`.
+Users add file names through the `extra_secret_names` plugin option or the PROOFGUARD_EXTRA_SECRET_NAMES environment
+variable (glob patterns; both apply), read by `extra_names_from_env`.
 
 Python 3.10+, standard library only.
 """
@@ -11,6 +12,9 @@ import os
 import re
 
 EXTRA_NAMES_ENV = "CLAUDE_PLUGIN_OPTION_EXTRA_SECRET_NAMES"
+# The same list from a plain environment variable: plugin options live only in user settings and reach hooks alone,
+# while a settings `env` entry reaches hooks, the Bash tool and guarded-commit, and can be set per project.
+EXTRA_NAMES_PLAIN_ENV = "PROOFGUARD_EXTRA_SECRET_NAMES"
 
 # (regex, what the file is). Placeholder env files (.env.example and its siblings) hold no secret by convention:
 # the names are allowed, the content is still scanned when such a file is committed.
@@ -94,10 +98,12 @@ def split_globs(value):
 
 
 def extra_names_from_env(environ=None):
-    """Extra (regex, what) entries from the extra_secret_names option; a glob that cannot compile is skipped."""
+    """Extra (regex, what) entries from the extra_secret_names option and PROOFGUARD_EXTRA_SECRET_NAMES; a glob that
+    cannot compile is skipped."""
     environ = os.environ if environ is None else environ
     extras = []
-    for glob in split_globs(environ.get(EXTRA_NAMES_ENV, "")):
+    globs = split_globs(environ.get(EXTRA_NAMES_ENV, "")) + split_globs(environ.get(EXTRA_NAMES_PLAIN_ENV, ""))
+    for glob in dict.fromkeys(globs):
         try:
             re.compile(glob_to_regex(glob))
         except re.error:

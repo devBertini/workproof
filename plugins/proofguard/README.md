@@ -64,7 +64,7 @@ Examples:
 
 Its extra option, set when the plugin is enabled or in `/config`:
 
-- `extra_secret_names`: file name patterns to guard besides the built-in list, separated by commas or new lines (a JSON array also works). `*` stays inside one folder, `**` crosses folders, and a pattern matches the end of a path, so `*.vault`, `deploy/keys/**` and `.my-token` all work. Matching ignores case.
+- `extra_secret_names`: file name patterns to guard besides the built-in list, separated by commas or new lines (a JSON array also works). `*` stays inside one folder, `**` crosses folders, and a pattern matches the end of a path, so `*.vault`, `deploy/keys/**` and `.my-token` all work. Matching ignores case. Plugin options are saved only in your user settings; to set this list per project, or for `guarded-commit` (which runs through the Bash tool and gets no plugin options), put the same value in the environment variable `PROOFGUARD_EXTRA_SECRET_NAMES` through the `env` of any settings file. Both lists apply.
 
 Claude Code hands the value to the hook as the environment variable `CLAUDE_PLUGIN_OPTION_EXTRA_SECRET_NAMES` ([plugins reference](https://code.claude.com/docs/en/plugins-reference)). It reaches hook processes only, so `guarded-commit`, which runs as an ordinary command, applies the extra patterns only when that variable is present in its environment.
 

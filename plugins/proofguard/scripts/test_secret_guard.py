@@ -18,6 +18,7 @@ from test_support import find_sh, posix  # noqa: E402
 PLUGIN = os.path.dirname(HERE)
 LAUNCHER = os.path.join(PLUGIN, "hooks", "run-hook.cmd")
 EXTRA_ENV = secret_patterns.EXTRA_NAMES_ENV
+PLAIN_ENV = secret_patterns.EXTRA_NAMES_PLAIN_ENV
 
 BLOCKED = [
     "python -c \"print(open('.env').read())\"",
@@ -238,7 +239,7 @@ def payload(command, tool="Bash"):
 
 
 def env_with(**extra):
-    env = {k: v for k, v in os.environ.items() if k != EXTRA_ENV}
+    env = {k: v for k, v in os.environ.items() if k not in (EXTRA_ENV, PLAIN_ENV)}
     env.update(extra)
     return env
 
@@ -367,6 +368,9 @@ class ExtraNames(unittest.TestCase):
         self.assertIn("extra pattern", blocked.stderr)
         self.assertEqual(run_hook(payload(command), env_with(**{EXTRA_ENV: "*.other"})).returncode, 0)
         self.assertEqual(run_hook(payload("cat .env"), env_with(**{EXTRA_ENV: "*.other"})).returncode, 2)
+        both = env_with(**{EXTRA_ENV: "*.other", PLAIN_ENV: "*.vault"})
+        self.assertEqual(run_hook(payload(command), both).returncode, 2)
+        self.assertEqual(run_hook(payload("cat a.other"), both).returncode, 2)
 
     def test_empty_or_broken_value_changes_nothing(self):
         for value in ("", "   ", "[not json", ","):
