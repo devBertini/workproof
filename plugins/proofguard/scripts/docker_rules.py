@@ -1,8 +1,9 @@
 """Docker rules of the guard: commands that print a container system's secrets.
 
-Three leaks are refused: `docker compose config` without `--no-interpolate` (it prints every interpolated value),
-`docker inspect` of a container or image without a `--format` that leaves out the environment (`Config.Env`), and
-`env`, `printenv` or `/proc/*/environ` run inside a container (`exec`, `run`). Python 3.10+, standard library only.
+Refused: `docker compose config` without `--no-interpolate` or with `--environment` (they print interpolated values or
+the environment), `docker inspect` (also `service inspect`) without a `--format` that leaves out the environment
+(`Config.Env`; `--format json` is the whole object), and `env`, `printenv`, `/proc/*/environ` or a file under
+`/run/secrets/` read inside a container (`exec`, `run`). Python 3.10+, standard library only.
 """
 import os
 import re
@@ -15,6 +16,10 @@ CONFIG_NAMES_ONLY = {"--no-interpolate", "--services", "--volumes", "--profiles"
                      "-q", "--quiet"}
 WHOLE_OBJECT = re.compile(r"\{\{\s*(json\s+)?\.(Config)?\s*\}\}")
 ENV_READERS = {"env", "printenv"}
+RUN_SECRET = re.compile(r"/run/secrets/[^/\s]+")
+# Programs that print a file given to them; an app that only uses a secret file inside the container passes.
+FILE_PRINTERS = {"cat", "head", "tail", "less", "more", "strings", "xxd", "od", "hexdump", "base64", "grep", "awk",
+                 "sed", "tac", "nl"}
 
 
 def subcommand(args):
@@ -59,14 +64,21 @@ def docker_verdict(program, args):
         return None
     if sub in ("container", "image") and rest:
         sub, rest = rest[0], rest[1:]
+    if compose and sub == "config" and "--environment" in rest:
+        return "`docker compose config --environment` prints the environment"
     if compose and sub == "config" and not CONFIG_NAMES_ONLY.intersection(rest):
         return "`docker compose config` prints the interpolated secrets; add `--no-interpolate`"
+    if not compose and sub == "service" and rest[:1] == ["inspect"]:
+        sub, rest = "inspect", rest[1:]
     if not compose and sub == "inspect":
         shape = format_value(rest)
         if shape is None:
             return "`docker inspect` without `--format` prints the environment (`Config.Env`)"
-        if "Env" in shape or WHOLE_OBJECT.search(shape):
+        if "Env" in shape or WHOLE_OBJECT.search(shape) or shape.strip().lower() == "json":
             return "this `docker inspect --format` prints the environment or the whole object"
     if sub in ("exec", "run") and reads_environment(rest):
         return "reading the environment inside a container (`env`, `printenv`, `/proc/*/environ`) prints secrets"
+    if sub in ("exec", "run") and any(RUN_SECRET.search(w) for w in rest) \
+            and any(os.path.basename(w) in FILE_PRINTERS for w in rest):
+        return "reading a file under `/run/secrets/` inside a container prints a secret"
     return None

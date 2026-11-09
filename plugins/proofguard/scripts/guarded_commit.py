@@ -3,10 +3,12 @@
 
     guarded_commit.py <repo> "<message>" <path>...
 
-Stages exactly the given paths (additions, changes and deletions), then refuses, committing nothing and leaving
+Stages exactly the given paths (additions, changes and deletions; every path is taken literally, so `file[1].txt`,
+`*` or a leading `:` never match anything but that exact name), then refuses, committing nothing and leaving
 nothing staged, when a staged file name matches a secret file name (secret_patterns.SECRET_NAMES plus the user's
 extra_secret_names, when the environment carries them) or the staged content matches a secret format
-(secret_patterns.SECRET_CONTENT). Otherwise it commits with the message as given. It never pushes.
+(secret_patterns.SECRET_CONTENT; every text blob is scanned whatever its size, UTF-16 and UTF-32 text included, and
+only real binary content is skipped, with a note). Otherwise it commits with the message as given. It never pushes.
 Exit 0 committed, 1 refused or failed. Python 3.10+, standard library only.
 """
 import os
@@ -23,7 +25,9 @@ class Refused(Exception):
 
 
 def git(repo, *args, check=True):
-    result = subprocess.run(["git", "-C", repo, *args], capture_output=True)
+    # --literal-pathspecs: a path argument is a file name, never a glob or pathspec magic (`*`, `[1]`, `:/`, `:(glob)`).
+    result = subprocess.run(["git", "--literal-pathspecs", "-C", repo, *args], capture_output=True,
+                            env=staged_secrets.git_env())
     if check and result.returncode != 0:
         detail = result.stderr.decode("utf-8", "replace").strip()
         raise Refused(f"git {args[0]} failed" + (f": {detail}" if detail else ""))

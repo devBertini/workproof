@@ -5,11 +5,13 @@ Expected values come from independent sources here (hashlib, Python's own output
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOL = os.path.join(HERE, "verify_run.py")
@@ -148,6 +150,74 @@ class Run(Base):
 
     def test_bash_is_never_the_system32_launcher(self):
         self.assertNotIn("system32", verify_run.BASH.lower())
+
+
+class BatchShims(Base):
+    """A .cmd or .bat shim (what `npm`, `npx`, `yarn` are on Windows) starts through cmd.exe, found by PATHEXT."""
+
+    def make_shim(self, name="shim.cmd", folder="bin dir"):
+        shims = os.path.join(self.dir, folder)  # a space in the folder on purpose
+        os.makedirs(shims)
+        with open(os.path.join(shims, name), "w", newline="") as f:
+            f.write("@echo off\r\necho shim[%~1][%~2]\r\nexit /b 7\r\n")
+        return shims
+
+    def on_path(self, shims):
+        return {**os.environ, "PATH": shims + os.pathsep + os.environ.get("PATH", "")}
+
+    def test_batch_line_quotes_arguments_and_refuses_what_cmd_would_read_as_syntax(self):
+        self.assertEqual(verify_run.batch_line("C:\\t\\npm.cmd", ["test", "two words"]),
+                         'C:\\t\\npm.cmd test "two words"')
+        for bad in ("a&b", "a|b", "a<b", "a>b", "a^b", "50%", 'say "hi"', "a\nb", "a\rb"):
+            with self.assertRaises(verify_run.Refused, msg=bad) as caught:
+                verify_run.batch_line("x.cmd", ["ok", bad])
+            self.assertIn("cmd.exe cannot take", str(caught.exception))
+        for fine in ("--grep=a b", "-x", "C:\\a b\\c", "(paren)", "a,b;c=d", "!bang"):
+            verify_run.batch_line("x.cmd", [fine])
+
+    @unittest.skipIf(os.name == "nt", "off Windows nothing is resolved or wrapped")
+    def test_off_windows_the_command_is_started_as_given(self):
+        self.assertEqual(verify_run.resolve_program(["npm", "test"]), ["npm", "test"])
+
+    @unittest.skipUnless(os.name == "nt", "Windows runs .cmd shims through cmd.exe")
+    def test_a_cmd_shim_found_on_path_runs_with_its_arguments_and_exit_code(self):
+        shims = self.make_shim()
+        with mock.patch.dict(os.environ, self.on_path(shims)):
+            r = verify_run.run_command(["shim", "two words", "-x"], self.dir, 30)
+        self.assertEqual((r["exit"], r["timed_out"], r["tail"]), (7, False, ["shim[two words][-x]"]))
+        self.assertEqual(r["command"], "shim 'two words' -x")
+
+    @unittest.skipUnless(os.name == "nt", "Windows runs .cmd shims through cmd.exe")
+    def test_a_bat_shim_and_the_cli_exit_code_and_a_zero_exit(self):
+        shims = self.make_shim("tool.bat")
+        p = subprocess.run([PY, "-B", TOOL, "run", "--cwd", self.dir, "--", "tool", "a", "b"], env=self.on_path(shims),
+                           capture_output=True, text=True, timeout=60)
+        self.assertEqual(p.returncode, 1, p.stderr)
+        self.assertEqual(json.loads(p.stdout)["tail"], ["shim[a][b]"])
+        with open(os.path.join(shims, "tool.bat"), "w", newline="") as f:
+            f.write("@echo off\r\necho fine\r\n")
+        p = subprocess.run([PY, "-B", TOOL, "run", "--cwd", self.dir, "--", "tool.bat"], env=self.on_path(shims),
+                           capture_output=True, text=True, timeout=60)
+        self.assertEqual((p.returncode, json.loads(p.stdout)["tail"]), (0, ["fine"]))
+
+    @unittest.skipUnless(os.name == "nt", "Windows runs .cmd shims through cmd.exe")
+    def test_an_argument_cmd_cannot_carry_is_refused_and_the_shim_never_runs(self):
+        shims = self.make_shim()
+        marker = os.path.join(self.dir, "ran")
+        p = subprocess.run([PY, "-B", TOOL, "run", "--cwd", self.dir, "--", "shim", f"x&echo>{marker}"],
+                           env=self.on_path(shims), capture_output=True, text=True, timeout=60)
+        self.assertEqual(p.returncode, 2)
+        self.assertIn("cmd.exe cannot take", p.stderr)
+        self.assertIn("refused", json.loads(p.stdout))
+        self.assertFalse(os.path.exists(marker))
+
+    @unittest.skipUnless(os.name == "nt", "Windows runs .cmd shims through cmd.exe")
+    def test_a_program_that_is_not_a_shim_still_runs_as_before_and_a_missing_one_says_so(self):
+        _, r = self.run_cmd("python", "-c", "print('plain')") if shutil.which("python") else (None, {"tail": ["plain"]})
+        self.assertEqual(r["tail"], ["plain"])
+        _, r = self.run_cmd("definitely-not-a-command-xyz")
+        self.assertEqual(r["exit"], 127)
+        self.assertIn("cannot run definitely-not-a-command-xyz", r["tail"][0])
 
 
 class Refusals(Base):

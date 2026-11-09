@@ -11,7 +11,7 @@
     {
       "name": "proofguard",
       "source": "./plugins/proofguard",
-      "description": "Blocks shell and Docker commands that read or print secrets and commits that stage them, and keeps a per-project plan whose stages close only when a named command passes.",
+      "description": "Blocks shell and Docker commands that read or print secrets and commits that stage them, and keeps a per-project plan whose stages close on a named command that passes, while a written proof is shown as unverified.",
       "category": "productivity"
     }
   ]

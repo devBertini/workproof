@@ -101,7 +101,7 @@ class Plan(unittest.TestCase):
         out = self.run_plan("done", "1", "--result", "model built", "--proof", "ShopTests 6 passed")
         stage = self.plan()["stages"][0]
         self.assertEqual((stage["status"], stage["notes"]), ("done", []))
-        self.assertIn("[done] 1. model: model built (proof: ShopTests 6 passed)", out)
+        self.assertIn("[done] 1. model [unverified]: model built (proof: ShopTests 6 passed)", out)
         self.assertIn("next: stage 2, screen", out)
 
     def test_a_stage_that_waits_is_paused_with_its_reason_and_another_starts(self):
@@ -154,7 +154,7 @@ class Plan(unittest.TestCase):
         added = self.run_plan("add", "--title", "stage 8", "--done-when", "y")
         self.assertIn("  [todo] 8. stage 8 | done when: y", added)
         self.assertNotIn("NOTE-six", added, "an open stage the command did not touch shows without its notes")
-        self.assertIn("[done] 1. stage 1: RESULT-1 (proof: p)", self.run_plan("show"))
+        self.assertIn("[done] 1. stage 1 [unverified]: RESULT-1 (proof: p)", self.run_plan("show"))
 
     def test_the_plan_file_is_written_with_lf_line_ends_on_every_platform(self):
         self.run_plan("new", "--goal", "build the shop")
@@ -507,7 +507,7 @@ class Hook(unittest.TestCase):
         write_json(self.big, "g", [stage(i, "done", f"short {i}") for i in range(1, 9)] + [stage(9, "pending", "next")])
         text = self.hook({"session_id": "s1", "source": "startup", "cwd": self.big_dir})
         self.assertNotIn("[closed]", text)
-        self.assertIn("  [done] 1. short 1\n", text)
+        self.assertIn("  [done] 1. short 1 [unverified]\n", text)
 
     def test_folding_comes_before_the_notes(self):
         stages = [stage(i, "done", f"Big done {i} " + "t" * 200) for i in range(1, 54)]
@@ -580,7 +580,7 @@ class Hook(unittest.TestCase):
 
     def test_done_stages_are_one_line_with_a_title_and_nothing_more(self):
         text = self.hook({"session_id": "s", "source": "startup", "cwd": self.big_dir})
-        self.assertIn("  [done] 53. Big done 53\n", text)
+        self.assertIn("  [done] 53. Big done 53 [unverified]\n", text)
         self.assertNotIn("RESULT-", text)
         self.assertNotIn("PROOF-", text)
         self.assertNotIn("d" * 150, text)
@@ -758,7 +758,7 @@ class Bundle(unittest.TestCase):
         self.assertEqual((one["status"], one["proof"]), ("done", "ShopTests 6 passed"))
         self.assertNotIn("verified", one)
         self.assertNotIn("[verified]", out)
-        self.assertIn("[done] 1. one: built (proof: ShopTests 6 passed)", out)
+        self.assertIn("[done] 1. one [unverified]: built (proof: ShopTests 6 passed)", out)
 
     def test_bundle_and_proof_together_or_without_a_command_are_refused(self):
         self.assertIn("no --proof", self.refused(PY, "-c", "pass", extra=("--proof", "text")))
@@ -803,10 +803,10 @@ class Bundle(unittest.TestCase):
         self.main("done", "2", "--result", "r2", "--proof", "by eye")
         shown = self.main("show")
         self.assertIn("[done] 1. one [verified]: r (proof: verified: ", shown)
-        self.assertIn("[done] 2. two: r2 (proof: by eye)", shown)
+        self.assertIn("[done] 2. two [unverified]: r2 (proof: by eye)", shown)
         text = wp.hook_text(self.root, "startup", "", self.project)
         self.assertIn("  [done] 1. one [verified]\n", text)
-        self.assertIn("  [done] 2. two\n", text)
+        self.assertIn("  [done] 2. two [unverified]\n", text)
         self.assertEqual(text.count("[verified]"), 1)
 
     def test_the_root_plan_runs_its_command_from_the_root(self):
@@ -818,6 +818,224 @@ class Bundle(unittest.TestCase):
         with open(os.path.join(self.root, ".claude", wp.NAME), encoding="utf-8") as f:
             v = json.load(f)["stages"][0]["verified"]
         self.assertEqual(os.path.realpath(v["tail"]), os.path.realpath(self.root))
+
+
+def where_first(args, project):
+    """`args --where project`, with --where before a bundle's `--` so the command's own words stay untouched."""
+    args = list(args)
+    i = args.index("--") if "--" in args else len(args)
+    return args[:i] + ["--where", project] + args[i:]
+
+
+def reap(proc, timeout):
+    """The exit code of a Popen made with pipes, after reading them (so none is left open)."""
+    proc.communicate(timeout=timeout)
+    return proc.returncode
+
+
+SCRIPT = os.path.join(HERE, "work_plan.py")
+WAIT_FOR = ("import os, sys, time\n"
+            "open(sys.argv[1], 'w').close()\n"
+            "while not os.path.exists(sys.argv[2]):\n"
+            "    time.sleep(0.02)\n")
+
+
+class Concurrency(unittest.TestCase):
+    """Parallel commands never crash or lose a change; a bundle does not hold the plan while its command runs."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = os.path.realpath(self.tmp.name)
+        self.project = make_repo(os.path.join(self.root, "app"))
+        self.path = os.path.join(self.project, "docs", wp.NAME)
+        self.env = {k: v for k, v in os.environ.items() if k not in CLEAN_ENV}
+        self.env["PYTHONUTF8"] = "1"
+        for args in (["new", "--goal", "g"], ["add", "--title", "one", "--done-when", "x"],
+                     ["add", "--title", "two", "--done-when", "y"], ["start", "1"]):
+            self.assertEqual(self.cli(*args).returncode, 0)
+
+    def popen(self, *args):
+        return subprocess.Popen([PY, "-B", SCRIPT, *where_first(args, self.project)], env=self.env,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    def cli(self, *args):
+        p = self.popen(*args)
+        out, err = p.communicate(timeout=120)
+        return subprocess.CompletedProcess(p.args, p.returncode, out, err)
+
+    def plan(self):
+        with open(self.path, encoding="utf-8") as f:
+            return json.load(f)
+
+    def wait_for(self, marker):
+        deadline = time.monotonic() + 60
+        while not os.path.exists(marker):
+            self.assertLess(time.monotonic(), deadline, "the bundle command never started")
+            time.sleep(0.02)
+
+    def test_thirty_parallel_notes_all_exit_zero_and_all_are_kept(self):
+        procs = [self.popen("note", "1", f"parallel note {i}") for i in range(30)]
+        results = [(p.communicate(timeout=180), p.returncode) for p in procs]
+        self.assertEqual([(code, err) for (_, err), code in results], [(0, "")] * 30)
+        notes = self.plan()["stages"][0]["notes"]
+        self.assertEqual(sorted(notes), sorted(f"parallel note {i}" for i in range(30)))
+        self.assertEqual(sorted(os.listdir(os.path.dirname(self.path))), [wp.NAME],
+                         "no temp or lock file is left beside the plan")
+
+    def test_parallel_adds_get_distinct_ids(self):
+        procs = [self.popen("add", "--title", f"t{i}", "--done-when", "x") for i in range(12)]
+        self.assertEqual([reap(p, 180) for p in procs], [0] * 12)
+        ids = [s["id"] for s in self.plan()["stages"]]
+        self.assertEqual(ids, list(range(1, 15)))
+
+    def test_a_note_and_a_stage_added_while_a_bundle_runs_survive_it(self):
+        started, go = os.path.join(self.root, "started"), os.path.join(self.root, "go")
+        bundle = self.popen("done", "1", "--result", "r", "--bundle", "--", PY, "-c", WAIT_FOR, started, go)
+        self.wait_for(started)
+        self.assertEqual(self.cli("note", "2", "written while the bundle runs").returncode, 0)
+        self.assertEqual(self.cli("add", "--title", "three", "--done-when", "z").returncode, 0)
+        open(go, "w").close()
+        out, err = bundle.communicate(timeout=120)
+        self.assertEqual(bundle.returncode, 0, err)
+        stages = self.plan()["stages"]
+        self.assertEqual((stages[0]["status"], bool(stages[0].get("verified"))), ("done", True))
+        self.assertEqual(stages[1]["notes"], ["written while the bundle runs"])
+        self.assertEqual([s["title"] for s in stages], ["one", "two", "three"])
+
+    def test_a_stage_changed_while_its_bundle_runs_is_not_closed_by_it(self):
+        started, go = os.path.join(self.root, "started"), os.path.join(self.root, "go")
+        bundle = self.popen("done", "1", "--result", "r", "--bundle", "--", PY, "-c", WAIT_FOR, started, go)
+        self.wait_for(started)
+        self.assertEqual(self.cli("pause", "1", "--reason", "waits").returncode, 0)
+        open(go, "w").close()
+        out, err = bundle.communicate(timeout=120)
+        self.assertNotEqual(bundle.returncode, 0)
+        self.assertIn("stage 1 is pending now", err)
+        one = self.plan()["stages"][0]
+        self.assertEqual(one["status"], "pending")
+        self.assertNotIn("verified", one)
+        self.assertEqual(one["notes"], ["Paused: waits"])
+
+    def test_a_lock_held_too_long_ends_the_command_with_a_message_and_changes_nothing(self):
+        lock = self.path + ".lock"
+        open(lock, "w").close()
+        self.addCleanup(lambda: os.path.exists(lock) and os.remove(lock))
+        with mock.patch.object(wp, "LOCK_WAIT", 0.3), self.assertRaises(SystemExit) as caught:
+            with wp.plan_lock(self.path):
+                self.fail("the lock was not held by the other process")
+        self.assertIn("stayed locked", str(caught.exception.code))
+        self.assertEqual(self.plan()["stages"][0]["notes"], [])
+
+    def test_a_stale_lock_of_a_dead_process_is_broken(self):
+        lock = self.path + ".lock"
+        open(lock, "w").close()
+        old = time.time() - wp.LOCK_STALE - 60
+        os.utime(lock, (old, old))
+        self.assertEqual(self.cli("note", "1", "after a crash").returncode, 0)
+        self.assertEqual(self.plan()["stages"][0]["notes"], ["after a crash"])
+        self.assertFalse(os.path.exists(lock))
+
+    def test_the_lock_is_released_when_the_command_fails(self):
+        self.assertNotEqual(self.cli("start", "9").returncode, 0)
+        self.assertFalse(os.path.exists(self.path + ".lock"))
+
+    def test_a_missing_plan_creates_no_folder_and_no_lock(self):
+        bare = make_repo(os.path.join(self.root, "bare"))
+        p = subprocess.run([PY, "-B", SCRIPT, "note", "1", "x", "--where", bare], env=self.env, capture_output=True,
+                           text=True, timeout=60)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("no active plan", p.stderr)
+        self.assertFalse(os.path.exists(os.path.join(bare, "docs")))
+
+    def test_the_plan_is_written_through_its_own_temp_file_and_synced(self):
+        calls = []
+        real = os.fsync
+        with mock.patch.object(os, "fsync", side_effect=lambda fd: (calls.append(fd), real(fd))[1]):
+            wp.save(self.path, {"goal": "g", "created": "2026-01-01", "stages": []})
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(os.listdir(os.path.dirname(self.path)), [wp.NAME])
+
+    def test_replace_is_retried_on_a_windows_permission_error_and_then_gives_up(self):
+        real = os.replace
+        attempts = []
+
+        def flaky(src, dst):
+            attempts.append(1)
+            if len(attempts) < 3:
+                raise PermissionError("busy")
+            real(src, dst)
+        target = os.path.join(self.root, "target.txt")
+        with mock.patch.object(wp, "WINDOWS", True), mock.patch.object(os, "replace", side_effect=flaky):
+            wp.write_atomic(target, "text\n")
+        self.assertEqual(len(attempts), 3)
+        with open(target, encoding="utf-8") as f:
+            self.assertEqual(f.read(), "text\n")
+        with mock.patch.object(wp, "WINDOWS", True), mock.patch.object(wp, "REPLACE_WAIT", 0.1), \
+                mock.patch.object(os, "replace", side_effect=PermissionError("busy")):
+            with self.assertRaises(PermissionError):
+                wp.write_atomic(target, "other\n")
+        self.assertEqual(sorted(os.listdir(self.root)), ["app", "target.txt"], "the temp file is removed on failure")
+
+    def test_parallel_commands_with_a_plans_root_leave_a_whole_pointer(self):
+        plans = os.path.join(self.root, "plans")
+        os.makedirs(plans)
+        project = make_repo(os.path.join(plans, "shop"))
+        env = dict(self.env, PROOF_PLANS_ROOT=plans, CLAUDE_CODE_SESSION_ID="sess-parallel")
+
+        def run(*args):
+            return subprocess.Popen([PY, "-B", SCRIPT, *args, "--where", project], env=env, stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE, text=True)
+        first = run("new", "--goal", "g")
+        self.assertEqual(reap(first, 60), 0)
+        add = run("add", "--title", "a", "--done-when", "x")
+        self.assertEqual(reap(add, 60), 0)
+        self.assertEqual(reap(run("start", "1"), 60), 0)
+        procs = [run("note", "1", f"n{i}") for i in range(15)]
+        self.assertEqual([reap(p, 180) for p in procs], [0] * 15)
+        with open(os.path.join(plans, ".claude", "plan-sessions", "sess-parallel"), encoding="utf-8") as f:
+            self.assertEqual(f.read().strip(), os.path.join(project, "docs", wp.NAME))
+        self.assertEqual(os.listdir(os.path.join(plans, ".claude", "plan-sessions")), ["sess-parallel"])
+
+
+class Unverified(unittest.TestCase):
+    """A stage closed with --proof ran no command: show and the hook say so; a --bundle stage says [verified]."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.project = make_repo(os.path.join(os.path.realpath(self.tmp.name), "app"))
+        isolate(self)
+
+    def main(self, *args):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            wp.main(where_first(args, self.project), root=None)
+        return out.getvalue()
+
+    def test_any_proof_text_marks_the_stage_unverified_in_every_view_and_a_bundle_marks_it_verified(self):
+        self.main("new", "--goal", "g")
+        for title in ("typed", "ran", "open"):
+            self.main("add", "--title", title, "--done-when", "x")
+        self.main("start", "1")
+        change = self.main("done", "1", "--result", "r1", "--proof", "anything at all")
+        self.assertIn("[done] 1. typed [unverified]: r1 (proof: anything at all)", change)
+        self.main("start", "2")
+        self.main("done", "2", "--result", "r2", "--bundle", "--", PY, "-c", "pass")
+        shown = self.main("show")
+        self.assertIn("[done] 1. typed [unverified]: r1", shown)
+        self.assertIn("[done] 2. ran [verified]: r2", shown)
+        hook = wp.hook_text(None, "startup", "", self.project)
+        self.assertIn("  [done] 1. typed [unverified]\n", hook)
+        self.assertIn("  [done] 2. ran [verified]\n", hook)
+
+    def test_the_schema_is_unchanged_a_proof_close_stores_no_verified_key(self):
+        self.main("new", "--goal", "g")
+        self.main("add", "--title", "a", "--done-when", "x")
+        self.main("start", "1")
+        self.main("done", "1", "--result", "r", "--proof", "p")
+        with open(os.path.join(self.project, "docs", wp.NAME), encoding="utf-8") as f:
+            self.assertNotIn("verified", json.load(f)["stages"][0])
 
 
 def find_bash():

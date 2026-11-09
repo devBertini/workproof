@@ -98,6 +98,35 @@ def launch_plan(words, shell):
     return list(words), False, None
 
 
+CMD_UNSAFE = re.compile(r'[&|<>^%"\r\n]')
+BATCH_EXTENSIONS = (".cmd", ".bat")
+
+
+def batch_line(program, args):
+    """The command line for `cmd.exe /d /s /c` that runs the batch file `program` with `args`. Raises Refused for an
+    argument cmd.exe would read as syntax (& | < > ^ % a double quote, a line break): quoting cannot make it literal."""
+    for word in (program, *args):
+        if CMD_UNSAFE.search(word):
+            raise Refused(f"{word!r} carries a character cmd.exe cannot take literally in a .cmd or .bat run "
+                          "(& | < > ^ % \" or a line break); pass it another way, for example in a file")
+    return subprocess.list2cmdline([program, *args])
+
+
+def resolve_program(argv):
+    """On Windows, the argv that really starts `argv[0]`: the program found through shutil.which (PATHEXT honoured), and
+    a .cmd or .bat behind cmd.exe, as ONE command line string (the quoting is ours, Popen must not redo it). Elsewhere,
+    or when nothing is found, argv unchanged (the start then fails with its own message)."""
+    if not WINDOWS:
+        return argv
+    found = shutil.which(argv[0])
+    if not found:
+        return argv
+    if found.lower().endswith(BATCH_EXTENSIONS):
+        comspec = os.environ.get("COMSPEC") or "cmd.exe"
+        return f'"{comspec}" /d /s /c "{batch_line(found, argv[1:])}"'
+    return [found, *argv[1:]]
+
+
 def display(words, shell):
     return " ".join(words) if shell else shlex.join(words)
 
@@ -130,6 +159,8 @@ def run_command(words, cwd=".", timeout=DEFAULT_TIMEOUT, shell=False):
     if not os.path.isdir(folder):
         raise ValueError(f"--cwd {cwd} is not a folder")
     argv, use_shell, executable = launch_plan(words, shell)
+    if not use_shell:
+        argv = resolve_program(argv)
     started = time.monotonic()
     timed_out = False
     with tempfile.TemporaryFile() as out:
@@ -137,7 +168,8 @@ def run_command(words, cwd=".", timeout=DEFAULT_TIMEOUT, shell=False):
             proc = subprocess.Popen(argv, cwd=folder, shell=use_shell, executable=executable, stdin=subprocess.DEVNULL,
                                     stdout=out, stderr=subprocess.STDOUT, start_new_session=not WINDOWS)
         except OSError as error:
-            out.write(f"verify_run: cannot run {argv[0]}: {error}\n".encode())
+            name = words[0] if isinstance(argv, str) else argv[0]
+            out.write(f"verify_run: cannot run {name}: {error}\n".encode())
             code = NOT_FOUND_EXIT
         else:
             try:

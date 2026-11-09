@@ -1,7 +1,7 @@
 {
   "name": "proofguard",
   "version": "0.1.0",
-  "description": "Guardrails that enforce instead of advise: blocks shell and Docker commands that read or print secrets and commits that stage them, and keeps a per-project plan whose stages close only when a named command passes.",
+  "description": "Guardrails that enforce instead of advise: blocks shell and Docker commands that read or print secrets and commits that stage them, and keeps a per-project plan whose stages close on a named command that passes, while a written proof is shown as unverified.",
   "author": {
     "name": "devBertini"
   },
@@ -31,7 +31,7 @@
     "proof_plans": {
       "type": "boolean",
       "title": "Proof plans module",
-      "description": "Print the project's plan at every session start; stages close only when a named command passes.",
+      "description": "Print the project's plan at every session start; a stage closed on a passing command is marked verified, one closed on a written proof unverified.",
       "default": true
     },
     "plans_root": {

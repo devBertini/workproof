@@ -127,6 +127,16 @@ class Copies(unittest.TestCase):
             with self.subTest(copy=copy), open(copy, "rb") as handle:
                 self.assertEqual(handle.read(), canonical, "copy differs from scripts/run-hook.cmd")
 
+    def test_launchers_and_tools_are_executable_in_git(self):
+        """macOS and Linux run the hook command and bin/ tools directly: git must record mode 100755."""
+        out = subprocess.run(["git", "-C", REPO, "ls-files", "-s", "--", "scripts/run-hook.cmd", "plugins/*/hooks/*.cmd",
+                              "plugins/*/bin/*"], capture_output=True, text=True, check=True).stdout
+        lines = [line for line in out.splitlines() if line]
+        self.assertGreater(len(lines), 1, out)
+        for line in lines:
+            with self.subTest(line=line):
+                self.assertTrue(line.startswith("100755 "), line)
+
 
 if __name__ == "__main__":
     unittest.main()

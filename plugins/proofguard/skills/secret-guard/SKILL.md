@@ -10,12 +10,14 @@ The proofguard secret guard hook inspects every Bash and PowerShell command befo
 ## What it blocks
 
 - A command that is handed the name of a credential file: `.env` and `.env.*` (not `.env.example`, `.env.sample`, `.env.template`), private keys (`id_rsa` and its siblings, `*.pem`, `*.key`, `*.p12`, `*.pfx`, `*.p8`), keystores, cloud and tool credential files (`~/.aws/credentials`, `~/.docker/config.json`, `~/.kube/config`, `.npmrc`, `.pypirc`, `.netrc`, `.git-credentials`, and similar), service-account and OAuth client files, and any pattern the user added in the plugin options.
-- Interpreter code that names such a file: `python -c "open('.env')"`, a heredoc fed to `python` or `node`, `bash -c '...'`.
-- Docker commands that print secrets: `docker compose config` without `--no-interpolate`, `docker inspect` without a `--format` that leaves out the environment, and `env`, `printenv` or `/proc/*/environ` run inside a container.
+- Interpreter code that names such a file: `python -c "open('.env')"`, a heredoc fed to `python` or `node`, `bash -c '...'`, `powershell -Command '...'`, `cmd /c '...'`, also behind `docker exec` or `sudo`.
+- A listed name piped into a reader: `find . -name .env | xargs cat`.
+- Printing the environment: bare `env`, `printenv`, `export -p` or `set`, `Get-ChildItem env:`, `/proc/*/environ`, and printing a variable whose name says it is secret (`echo $API_TOKEN`, `$env:GITHUB_TOKEN`).
+- Docker commands that print secrets: `docker compose config` without `--no-interpolate` or with `--environment`, `docker inspect` or `docker service inspect` without a `--format` that leaves out the environment (`--format json` prints everything), and `env`, `printenv`, `/proc/*/environ` or `cat /run/secrets/...` run inside a container.
 
 ## What stays allowed
 
-Listing or testing a file (`ls`, `test -f`, `stat`, `chmod`, `git check-ignore`, `git status`), handing an env file to Docker (`docker compose --env-file .env up`), `git rm --cached`, copying a template over a secret file (`cp .env.example .env`), and every command that does not name a secret file.
+Listing, testing, hashing or counting a file (`ls`, `test -f`, `stat`, `wc -l`, `sha256sum`, `git check-ignore`, `git status`), creating, writing or removing it (`touch`, `rm`, `> .env`, `cat > .env <<'EOF'`, `cp .env.example .env`), handing it to the tool that uses it (`docker compose --env-file .env up`, `node --env-file=.env`, `ssh -i ~/.ssh/id_ed25519`), searching for its name (`grep -n .env .gitignore`), naming it in a commit message, `git rm --cached`, using a secret variable without printing it (`curl -H "Authorization: Bearer $API_TOKEN"`), and every command that does not name a secret file.
 
 ## How to proceed
 

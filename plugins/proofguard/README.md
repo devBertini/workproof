@@ -5,7 +5,7 @@ Guardrails for Claude Code that enforce instead of advise. One plugin, two modul
 | Module | What it does |
 |---|---|
 | Secret guard | Blocks Bash and PowerShell commands that read or print secrets, Docker commands that leak them, and commits that stage them. |
-| Proof plans | Keeps one plan per project; a stage closes only when a named command passes, and the plan is printed back at every session start. |
+| Proof plans | Keeps one plan per project; a stage closes on a named command that passes (a written proof is shown as unverified), and the plan is printed back at every session start. |
 
 ## Install
 
@@ -13,7 +13,7 @@ Guardrails for Claude Code that enforce instead of advise. One plugin, two modul
 /plugin install proofguard --marketplace devBertini/proofguard
 ```
 
-Requires Python 3.10 or later on PATH (`python3`, `python` or `py -3`). On Windows the hooks run through Git Bash, which Claude Code uses by default.
+Requires Python 3.10 or later on PATH (`python3`, `python` or `py -3`). On Windows it also requires Git for Windows: the hooks run through Git Bash, which Claude Code uses when it is installed. Without Git Bash, Claude Code falls back to PowerShell, which cannot parse the hook command, and a failing PreToolUse hook there blocks every shell call.
 
 ## Options
 
@@ -38,9 +38,13 @@ It is a pattern guard against mistakes, not a sandbox. See [Limits](#limits).
 
 A command is blocked, with exit code 2 and the reason on stderr for Claude, when it:
 
-- is given the name of a secret file: `.env` and `.env.*` (but not `.env.example`, `.env.sample` or `.env.template`), private keys (`id_rsa`, `id_ed25519` and siblings, `*.pem`, `*.key`, `*.p12`, `*.pfx`, `*.p8`), keystores, and credential files of AWS, Google Cloud, Azure, Docker, Kubernetes, npm, PyPI, netrc, pgpass, htpasswd, GitHub CLI, GnuPG and Git, plus service-account and OAuth client files and Terraform state;
-- hands such a name to an interpreter: `python -c "open('.env')"`, a heredoc fed to `python` or `node`, `bash -c '...'`, even through nesting;
-- runs one of the Docker leaks: `docker compose config` without `--no-interpolate`, `docker inspect` without a `--format` that leaves out `Config.Env`, or `env`, `printenv` and `/proc/*/environ` inside a container.
+- is given the name of a secret file: `.env`, `.env.*` and `*.env` (but not `.env.example`, `.env.sample` or `.env.template`), `.envrc`, `.dev.vars`, `secrets.toml`, `credentials.json` (Claude Code's own included), private keys (`id_rsa`, `id_ed25519` and siblings, `*.pem`, `*.key`, `*.p12`, `*.pfx`, `*.p8`), keystores, and credential files of AWS, Google Cloud, Azure, Docker, Kubernetes, npm, PyPI, netrc, pgpass, htpasswd, GitHub CLI, GnuPG and Git, plus service-account and OAuth client files and Terraform state. Windows paths (`C:\app\.env`) and globs (`.env*`) count;
+- hands such a name to an interpreter: `python -c "open('.env')"`, a heredoc fed to `python` or `node`, `bash -c '...'`, `powershell -Command`, `cmd /c`, even through nesting or behind `docker exec` and `sudo`;
+- pipes a listed secret file name into a reader: `find . -name .env | xargs cat`;
+- prints the environment: bare `env`, `printenv`, `export -p` or `set`, `Get-ChildItem env:`, `[Environment]::GetEnvironmentVariables()`, `/proc/*/environ`, or a variable whose name says it holds a secret (`echo $API_TOKEN`, `printenv GITHUB_TOKEN`, `$env:ANTHROPIC_API_KEY`);
+- runs one of the Docker leaks: `docker compose config` without `--no-interpolate` or with `--environment`, `docker inspect` or `docker service inspect` without a `--format` that leaves out `Config.Env` (`--format json` is the whole object), or `env`, `printenv`, `/proc/*/environ` and `/run/secrets/*` read inside a container.
+
+It lets through what prints nothing of a secret file: listing, testing, hashing or counting it (`ls`, `test`, `stat`, `wc`, `sha256sum`, `Test-Path`, `Get-ChildItem`), creating, writing or removing it (`touch`, `rm`, `Remove-Item`, `> .env`, `cat > .env <<'EOF'`, a copy or a rename into it), handing it to a tool that uses it without printing it (`ssh -i`, `scp -i`, `--env-file`), and naming it as a search pattern, a `--include` glob or in a commit message.
 
 Examples:
 
@@ -76,19 +80,21 @@ Plugin `bin/` folders are on the Bash tool's `PATH`, so Claude can run it by nam
 - the staged content, read from the index and not the working copy, matches a token format: GitHub, AWS, Slack, Stripe live, Anthropic, OpenAI and Hugging Face tokens, and private key blocks. The report gives file, line and kind, never the value. A Google API key only warns;
 - something else is already staged, or nothing changes in those paths.
 
-Otherwise it commits with the message as written. It checks no message style and never pushes. Binary files and files over 2 MB are skipped with a note.
+Otherwise it commits with the message as written. It checks no message style and never pushes. Paths are taken literally (`file[1].txt` is that file, never a pattern). Every text file is scanned whatever its size, UTF-16 and UTF-32 included; only binary files are skipped, with a note.
 
 ### Measured
 
-On one developer's local Claude Code transcripts, 40,967 Bash and PowerShell commands were replayed through the guard and every block was reviewed: 17 blocks, 9 intended and 8 false (0.02% of commands). The false blocks were interpreter code that only mentions a secret file name while editing a text file, a container `env | grep` on a public image, and a project-level `.npmrc` read. The guard called through Git Bash and the launcher on Windows 11 takes a median of 71 ms and a p95 of 77 ms (200 calls).
+On one developer's local Claude Code transcripts, 41,054 Bash and PowerShell commands were replayed through the guard and every block was reviewed: 19 blocks, 11 intended (among them `env | grep` lines that would print API key values) and 8 false (0.02% of commands). The false blocks were interpreter code that only mentions a secret file name while editing a text file, and a container `env | grep` on a public image. The guard called through Git Bash and the launcher on Windows 11 takes a median of 76 ms and a p95 of 100 ms (200 calls).
 
 ### Limits
 
 - It matches patterns in the command text. A command built to hide a file name (concatenating a name, reading it from a variable, an encoded string) gets past it. It guards against mistakes, not against an adversary.
 - It is not a sandbox. Where Claude Code's sandbox runs, turn it on as well: it can deny reads of listed files and environment variables at the operating-system level, which a pattern cannot. It does not run on native Windows, where this hook is the only layer.
-- Interpreter code that merely mentions a secret file name, for example a script that edits a text file containing the name, is blocked too: the guard cannot tell a mention from a read.
+- Interpreter code that merely mentions a secret file name, for example a script that edits a text file containing the name, is blocked too: the guard cannot tell a mention from a read. So is `source .env`: a malformed line makes the shell echo it back.
+- A variable is recognized as secret by its name only (`TOKEN`, `SECRET`, `PASSWORD`, `API_KEY`, `CREDENTIAL` and the like); printing a secret held in a variable with an ordinary name gets past it, and so does interpreter code that prints its environment (`print(os.environ)`).
+- On Windows, a plugin folder whose path holds `&` breaks the launcher under cmd.exe and the hook does not run.
 - It sees commands, not file contents: a secret that reaches the conversation by another route (a file tool, a copied value) is outside it.
-- If the hook cannot start (no Python), Claude Code treats that as a non-blocking error and the command runs.
+- The guard fails closed: if its hook cannot start (no Python), crashes or passes its 10 s timeout, the command is blocked (`onFailure: "block"`, Claude Code 2.1.295 or later; older versions let the command run).
 - There is no support promise: issues are looked at monthly.
 
 ## Proof plans
@@ -123,7 +129,7 @@ If the test had failed, stage 1 would have stayed open and the command's last li
 | `start N` | Marks a stage in progress; only one at a time. |
 | `note N "<text>"` | Appends a note to an open stage. |
 | `done N --result "<r>" --bundle [--timeout S] -- <command...>` | Runs the command from the project folder (default 600 s) and closes the stage only on exit 0. |
-| `done N --result "<r>" --proof "<text>"` | Closes a stage on a proof that is not a command. Not combinable with `--bundle`. |
+| `done N --result "<r>" --proof "<text>"` | Closes a stage on a proof that is not a command; `show` and the hook mark it `[unverified]`. Not combinable with `--bundle`. |
 | `pause N --reason "<r>"` | Puts a stage in progress back to pending, with a note. |
 | `drop N --reason "<r>"` | Marks an open stage dropped. |
 | `show` | Prints the whole plan (read only). |

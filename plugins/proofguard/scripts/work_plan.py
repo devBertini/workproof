@@ -19,7 +19,11 @@ folder, bounded by --timeout (default 600 s). Exit 0 closes the stage and stores
 (command, exit, duration, sha256 of the whole output, the last lines trimmed to 2,000 characters, time); the proof is
 written as `verified: <command> exit 0 in <s> s`. Any other outcome (non-zero exit, timeout, a refused outward
 command) leaves the stage open and prints why. `show` and `hook` mark such a stage `[verified]`. `--proof` stays for a
-proof that is not a command; the two are never given together.
+proof that is not a command (nothing runs): such a stage is marked `[unverified]`; the two are never given together.
+The command runs with no lock held; the plan is reloaded afterwards, and a stage no longer in progress is not closed.
+
+Every command that changes a plan holds `<plan>.lock` for its load-modify-save, and the file is written through a
+temp file of its own, so parallel commands never crash or lose each other's changes.
 
 Plans root (optional). A folder that holds many projects, named by the environment variable PROOF_PLANS_ROOT or, in a
 hook, by the plugin option `plans_root` (exported by Claude Code as CLAUDE_PLUGIN_OPTION_PLANS_ROOT). When set:
@@ -35,12 +39,15 @@ the next one; `show` prints all. The hook prints nothing when PROOF_PLANS_SILENT
 not take steps of a plan it does not own).
 """
 import argparse
+import contextlib
 import datetime
 import glob
 import json
 import os
+import random
 import re
 import sys
+import tempfile
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -55,6 +62,10 @@ ROOT_ENV = "PROOF_PLANS_ROOT"
 ROOT_OPTION_ENV = "CLAUDE_PLUGIN_OPTION_PLANS_ROOT"
 SILENT_ENV = "PROOF_PLANS_SILENT"
 BUNDLE_TIMEOUT = 600
+WINDOWS = os.name == "nt"
+LOCK_WAIT = 30.0    # seconds a command waits for another one's lock before it gives up
+LOCK_STALE = 120.0  # a lock older than this belongs to a process that died: it is broken (a held lock lasts milliseconds)
+REPLACE_WAIT = 5.0  # seconds os.replace is retried on Windows, where a reader or a scanner can hold the target
 TAIL_CHARS = 2000
 SKILL = "proofguard:working-in-stages"
 HEADER_INDEX = (f"Active plans under the plans root (skill {SKILL}). Continue the plan of the project you work on"
@@ -116,18 +127,113 @@ def plan_path(where=None, root=None):
 def load(path):
     if not os.path.exists(path):
         sys.exit(f"work_plan: no active plan at {path}; start one with `new`")
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
+    deadline = time.monotonic() + REPLACE_WAIT
+    while True:
+        try:
+            with open(path, encoding="utf-8") as f:
+                return json.load(f)
+        except PermissionError:  # Windows: the file is being replaced at this very moment
+            if not WINDOWS or time.monotonic() >= deadline:
+                raise
+            time.sleep(0.01)
+
+
+def replace_retrying(src, dst):
+    """os.replace, retried for a short bounded time on Windows, where it raises PermissionError while another process
+    has the target open (a concurrent reader, an indexer, a virus scanner)."""
+    deadline = time.monotonic() + REPLACE_WAIT
+    while True:
+        try:
+            os.replace(src, dst)
+            return
+        except PermissionError:
+            if not WINDOWS or time.monotonic() >= deadline:
+                raise
+            time.sleep(0.01)
+
+
+def write_atomic(path, text):
+    """Write `text` to `path` so a reader sees the old file or the new one, never half: a temp file of its own name (so
+    two writers never share one) in the same folder, flushed to disk, then renamed over the target. LF on every
+    platform: Python's text mode writes CRLF on Windows, and the plan is usually a tracked file."""
+    folder = os.path.dirname(path) or "."
+    fd, tmp = tempfile.mkstemp(dir=folder, prefix=f".{os.path.basename(path)}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
+            f.write(text)
+            f.flush()
+            os.fsync(f.fileno())
+        os.chmod(tmp, 0o644)  # mkstemp makes the file private; a plan is an ordinary project file
+        replace_retrying(tmp, path)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.remove(tmp)
+        raise
 
 
 def save(path, plan):
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    tmp = path + ".tmp"
-    # LF on every platform: Python's text mode writes CRLF on Windows, and the plan is usually a tracked file.
-    with open(tmp, "w", encoding="utf-8", newline="\n") as f:
-        json.dump(plan, f, indent=1, ensure_ascii=False)
-        f.write("\n")
-    os.replace(tmp, path)
+    write_atomic(path, json.dumps(plan, indent=1, ensure_ascii=False) + "\n")
+
+
+@contextlib.contextmanager
+def plan_lock(path, create=False):
+    """Hold the plan's lock for one load-modify-save, so parallel commands never lose each other's changes.
+
+    The lock is a file `<plan>.lock` made with O_CREAT|O_EXCL, which is atomic on every platform and needs neither
+    msvcrt nor fcntl; it is removed on release, so no stray file stays beside the plan. Whoever finds it taken retries
+    with short random sleeps up to LOCK_WAIT seconds, then exits with a message. A holder keeps it for milliseconds (no
+    command runs under it), so a lock older than LOCK_STALE is a crashed process's and is broken. Two commands breaking
+    the same stale lock at the same instant could both pass; that needs a crash and a tie and is accepted.
+    When the plan's folder does not exist and `create` is not set there is nothing to lock (the command then fails on
+    the missing plan without creating folders)."""
+    folder = os.path.dirname(path)
+    if create:
+        os.makedirs(folder, exist_ok=True)
+    elif not os.path.isdir(folder):
+        yield
+        return
+    lock = path + ".lock"
+    deadline = time.monotonic() + LOCK_WAIT
+    delay = 0.005
+    while True:
+        try:
+            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            break
+        except FileExistsError:
+            pass
+        except PermissionError:  # Windows reports a lock that is being deleted this way
+            if not WINDOWS:
+                raise
+        try:
+            if time.time() - os.path.getmtime(lock) > LOCK_STALE:
+                os.remove(lock)
+                continue
+        except OSError:
+            pass
+        if time.monotonic() >= deadline:
+            sys.exit(f"work_plan: {lock} stayed locked for {LOCK_WAIT:g} s; if no work-plan command is running, "
+                     "delete that file")
+        time.sleep(delay * (1 + random.random()))
+        delay = min(delay * 2, 0.1)
+    try:
+        os.write(fd, str(os.getpid()).encode())
+    finally:
+        os.close(fd)
+    try:
+        yield
+    finally:
+        deadline = time.monotonic() + REPLACE_WAIT
+        while True:
+            try:
+                os.remove(lock)
+                break
+            except FileNotFoundError:
+                break
+            except PermissionError:
+                if not WINDOWS or time.monotonic() >= deadline:
+                    break
+                time.sleep(0.01)
 
 
 def stage(plan, n):
@@ -160,7 +266,7 @@ def stage_lines(s, brief=False, drop_notes=0, short=False, notes=True):
     """One stage as text: a closed stage is one line (its number and title only when `brief`); an open stage is its
     line and its notes, the oldest `drop_notes` of the stage in progress left out."""
     if s["status"] == "done":
-        seal = " [verified]" if s.get("verified") else ""
+        seal = " [verified]" if s.get("verified") else " [unverified]"
         return [f"  [done] {s['id']}. {s['title']}{seal}" if brief else
                 f"  [done] {s['id']}. {s['title']}{seal}: {s.get('result', '')} (proof: {s.get('proof', '')})"]
     if s["status"] == "dropped":
@@ -249,10 +355,7 @@ def write_pointer(root, plan_file, session_id=None):
     folder = os.path.join(root, POINTER_DIR)
     try:
         os.makedirs(folder, exist_ok=True)
-        tmp = os.path.join(folder, f".{sid}.tmp")
-        with open(tmp, "w", encoding="utf-8", newline="\n") as f:
-            f.write(os.path.abspath(plan_file) + "\n")
-        os.replace(tmp, os.path.join(folder, sid))
+        write_atomic(os.path.join(folder, sid), os.path.abspath(plan_file) + "\n")
     except OSError:
         pass
 
@@ -492,6 +595,46 @@ def main(argv=None, root=AUTO):
         return 0
 
     path = plan_path(a.where, root)
+    if a.command == "done" and a.bundle:
+        return done_bundle(a, path, root, words)
+    if a.command == "show":  # show only reads: it takes no lock, never saves the plan nor moves the session's pointer
+        print(render(load(path), label_of(path, root)))
+        return 0
+    with plan_lock(path, create=a.command == "new"):  # one load-modify-save at a time per plan
+        return change_plan(a, path, root)
+
+
+def changed(plan, path, root, touched):
+    """Save the plan, move the session's pointer and print what the command touched."""
+    save(path, plan)
+    write_pointer(root, path)
+    print(render_change(plan, label_of(path, root), touched))
+    return 0
+
+
+def done_bundle(a, path, root, words):
+    """done --bundle: check under the lock that the stage can close, run the command with no lock held (it may take
+    up to --timeout seconds, and other commands must keep working meanwhile), then reload the plan under the lock and
+    close the stage on that fresh copy, so a note or a stage added meanwhile is kept. A stage that is no longer in
+    progress by then (paused, dropped, closed by another command) is not closed."""
+    if not a.result or a.proof or not words:
+        sys.exit("work_plan: done --bundle needs --result and the command after `--`, and no --proof")
+    with plan_lock(path):
+        s = stage(load(path), a.n)
+        if s["status"] != "in_progress":
+            sys.exit(f"work_plan: stage {a.n} is {s['status']}; start it first")
+    verified, proof = bundle_proof(path, words, a.timeout)
+    with plan_lock(path):
+        plan = load(path)
+        s = stage(plan, a.n)
+        if s["status"] != "in_progress":
+            sys.exit(f"work_plan: the command passed, but stage {a.n} is {s['status']} now (changed while it ran); "
+                     "the stage was not closed by it")
+        s.update(status="done", result=a.result, proof=proof, verified=verified, notes=[])
+        return changed(plan, path, root, a.n)
+
+
+def change_plan(a, path, root):
     if a.command == "new":
         if os.path.exists(path):
             sys.exit(f"work_plan: {path} already holds an active plan; add stages to it or finish it first")
@@ -522,19 +665,13 @@ def main(argv=None, root=AUTO):
         if s["status"] not in OPEN or not a.text:
             sys.exit("work_plan: note needs an open stage and its text")
         s.setdefault("notes", []).append(a.text)
-    elif a.command == "done":
+    elif a.command == "done":  # a proof that is not a command: shown as [unverified]; --bundle is the verified close
         s = stage(plan, a.n)
         if s["status"] != "in_progress":
             sys.exit(f"work_plan: stage {a.n} is {s['status']}; start it first")
-        if a.bundle:
-            if not a.result or a.proof or not words:
-                sys.exit("work_plan: done --bundle needs --result and the command after `--`, and no --proof")
-            verified, proof = bundle_proof(path, words, a.timeout)
-            s.update(status="done", result=a.result, proof=proof, verified=verified, notes=[])
-        else:
-            if not (a.result and a.proof):
-                sys.exit("work_plan: done needs --result and --proof (or --result and --bundle -- <command>)")
-            s.update(status="done", result=a.result, proof=a.proof, notes=[])
+        if not (a.result and a.proof):
+            sys.exit("work_plan: done needs --result and --proof (or --result and --bundle -- <command>)")
+        s.update(status="done", result=a.result, proof=a.proof, notes=[])
     elif a.command == "pause":
         s = stage(plan, a.n)
         if s["status"] != "in_progress":
@@ -555,14 +692,8 @@ def main(argv=None, root=AUTO):
         os.remove(path)
         print(f"finished and removed: {label}")
         return 0
-    if a.command == "show":  # show only reads: it never saves the plan nor moves the session's pointer
-        print(render(plan, label))
-        return 0
-    save(path, plan)
-    write_pointer(root, path)
     touched = max(s["id"] for s in plan["stages"]) if a.command == "add" else a.n
-    print(render_change(plan, label, touched))
-    return 0
+    return changed(plan, path, root, touched)
 
 
 if __name__ == "__main__":

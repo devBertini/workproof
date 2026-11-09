@@ -10,7 +10,6 @@ import json
 import os
 import re
 
-SCAN_MAX_BYTES = 2 * 1024 * 1024
 EXTRA_NAMES_ENV = "CLAUDE_PLUGIN_OPTION_EXTRA_SECRET_NAMES"
 
 # (regex, what the file is). Placeholder env files (.env.example and its siblings) hold no secret by convention:
@@ -27,7 +26,13 @@ SECRET_NAMES = [
     (r"(^|/)[^/]*service_account[^/]*\.json$", "cloud service account key"),
     (r"(^|/)client_secret[^/]*\.json$", "OAuth client secret"),
     (r"(^|/)token\.json$", "OAuth token file"),
-    (r"(^|/)\.?netrc$", "credentials file (netrc)"),
+    (r"(^|/)[._]?netrc$", "credentials file (netrc)"),
+    # `process.env` and `import.meta.env` are JavaScript, not files.
+    (r"(^|/)(?!(process|meta)\.env$)[^/\s]+\.env$", "environment file (*.env)"),
+    (r"(^|/)\.envrc$", "direnv environment file (.envrc)"),
+    (r"(^|/)\.dev\.vars$", "local secrets file (.dev.vars)"),
+    (r"(^|/)secrets\.toml$", "secrets file (secrets.toml)"),
+    (r"(^|/)\.?credentials\.json$", "credentials file (credentials.json, including Claude Code's own)"),
     (r"(^|/)\.pgpass$", "PostgreSQL password file"),
     (r"(^|/)\.htpasswd$", "web server password file"),
     (r"(^|/)\.git-credentials$", "stored git credentials"),
@@ -46,7 +51,7 @@ SECRET_NAMES = [
 # (level, kind, regex). FAIL refuses the commit; WARN only notes.
 SECRET_CONTENT = [
     ("FAIL", "GitHub token", r"\b(?:gh[pousr]_[A-Za-z0-9]{36,255}|github_pat_[A-Za-z0-9_]{50,255})"),
-    ("FAIL", "private key block", r"-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----"),
+    ("FAIL", "private key block", r"-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY(?: BLOCK)?-----"),
     ("FAIL", "AWS access key ID", r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),
     ("FAIL", "Slack token", r"\bxox[abprs]-[A-Za-z0-9-]{10,}"),
     ("FAIL", "Stripe live secret key", r"\b[rs]k_live_[0-9A-Za-z]{16,}"),
