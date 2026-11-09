@@ -10,4 +10,5 @@ First public release.
 - Commit rules for `guarded-commit`, turned on by environment variables.
 - Flow map: the `check-flows` engine for Xcode, Swift package, Vitest, Playwright and nextest projects, with maps in English or Brazilian Portuguese.
 - Long runs: the `watch_run` tool and the `watch-log` command.
+- A session-start self-test and `workproof-doctor`, which say why the hooks cannot start and how to fix it.
 - Skills for working in stages, developing versions, mapping flows, closing deliveries, maintaining rules, delegating to agents, Docker Compose systems, Rust, button layout and long commands; a `concise` output style.

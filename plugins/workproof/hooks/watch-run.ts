@@ -152,13 +152,12 @@ export function afterTurn($: EngineInterface): void {
   if (text !== undefined) void wake($, text)
 }
 
-export const register: Register = on => {
-  on('session.start', async ($, e, next) => {
-    const started = await next(e)
-    await $.tool.register({ name: NAME, description: DESCRIPTION, inputSchema: SCHEMA, isDeferred: true })
-    return started
-  })
+// At session start (the module's one session.start hook, in register.ts, calls it).
+export async function registerTool($: EngineInterface): Promise<void> {
+  await $.tool.register({ name: NAME, description: DESCRIPTION, inputSchema: SCHEMA, isDeferred: true })
+}
 
+export const register: Register = on => {
   on('tool.call', { tool: TOOL }, async ($, e) => {
     const input = e as unknown as Input
     const problem = problemOf(input)

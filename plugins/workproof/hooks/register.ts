@@ -4,11 +4,18 @@
 // variable WORKPROOF_COMPACT_ON_STAGE_CLOSE=on (the `env` block of any settings file).
 import type { Register } from 'claude-code'
 import { afterTurn as compactAfterTurn, compactionOn, register as stageCompact } from './stage-compact'
-import { afterTurn as watchAfterTurn, register as watchRun } from './watch-run'
+import { runSelfTest } from './self-test'
+import { afterTurn as watchAfterTurn, registerTool, register as watchRun } from './watch-run'
 
 export const register: Register = (on, options) => {
   const longRuns = options.long_runs !== false
   const plans = options.proof_plans !== false
+  on('session.start', async ($, e, next) => {
+    const started = await next(e)
+    if (longRuns) await registerTool($)
+    runSelfTest($)
+    return started
+  })
   if (!longRuns && !plans) return
   if (longRuns) watchRun(on, options)
   if (plans) stageCompact(on, options)

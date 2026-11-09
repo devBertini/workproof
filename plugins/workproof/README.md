@@ -50,11 +50,11 @@ And one to see the guard: ask Claude to `show me what is in .env`. The command i
 | Before each Bash or PowerShell command | `scripts/secret_guard.py` | Reads the command text and blocks it or lets it run. It never runs the command and never opens the files it names. |
 | Before each Read, Grep, Edit or NotebookEdit call | `scripts/file_guard.py` | Reads the file path or glob the tool was given and blocks the call when it names a secret file. It never opens the file. |
 | Before each Agent call | `scripts/agent_guard.py` | Reads the agent type and model; may ask you or refuse. |
-| In the Claude Code process | `hooks/register.ts` (hooks module) | Registers the `watch_run` tool. With `compact_on_stage_close` on, it also reads the output of Bash calls that ran `work-plan done`, runs `git status --porcelain` in the plan's repository at the end of that turn and asks Claude Code to compact. |
+| In the Claude Code process | `hooks/register.ts` (hooks module) | Registers the `watch_run` tool. At session start it runs the launcher once (`modules.py --self-test`) and, if the hooks cannot start, prints the cause and the fix. With `compact_on_stage_close` on, it also reads the output of Bash calls that ran `work-plan done`, runs `git status --porcelain` in the plan's repository at the end of that turn and asks Claude Code to compact. |
 
 The hooks start through `hooks/run-hook.cmd`, a launcher that finds Python. `watch_run` starts `scripts/watch_log.py`, which only reads the log you name.
 
-**What runs when Claude or you call it** (the `bin/` commands): `work-plan`, `verify-run` (runs the command you give and records its result), `guarded-commit` (runs `git add`, `git diff`, `git commit` in the repository you name), `check-flows` (runs your project's test commands, `git`, and on a Mac `xcodebuild`, `swift test` and `xcrun`), `watch-log`.
+**What runs when Claude or you call it** (the `bin/` commands): `workproof-doctor` (runs the launcher and `git --version`), `work-plan`, `verify-run` (runs the command you give and records its result), `guarded-commit` (runs `git add`, `git diff`, `git commit` in the repository you name), `check-flows` (runs your project's test commands, `git`, and on a Mac `xcodebuild`, `swift test` and `xcrun`), `watch-log`.
 
 **What it reads:** the hook input Claude Code sends; `docs/ACTIVE-PLAN.json` of the current project and, with a plans root, of the projects under it; the staged content of a commit made with `guarded-commit`; for the flow map, `docs/FLOWS.md`, `scripts/flows.json`, the source and test files they cite and the test reports; the log given to `watch_run`; its own `agents/*.md`. It never reads Claude Code's transcripts, settings or credentials.
 
@@ -94,7 +94,7 @@ Nothing else: no log, no cache, nothing in your home folder or in the plugin's o
 
 Plugin options are saved in your user settings only. For one project, the `env` block of its settings file can turn on two of them instead: `WORKPROOF_COMPACT_ON_STAGE_CLOSE=on` and `WORKPROOF_REFUSE_INHERITING_AGENTS=on`.
 
-A skill cannot be unloaded by a plugin option: a switched-off module's skill tells Claude to ignore it. Claude Code asks for the options when the plugin is enabled and shows them in `/config`. The command line tools (`work-plan`, `verify-run`, `guarded-commit`, `watch-log`, `check-flows`) stay available whichever modules are on.
+A skill cannot be unloaded by a plugin option: a switched-off module's skill tells Claude to ignore it. Claude Code asks for the options when the plugin is enabled and shows them in `/config`. The command line tools (`work-plan`, `verify-run`, `guarded-commit`, `watch-log`, `check-flows`, `workproof-doctor`) stay available whichever modules are on.
 
 ## Secret guard
 
@@ -299,7 +299,9 @@ The `watch_run` tool (a hooks module) follows the log of a command started in th
 
 ## Troubleshooting
 
-- **Every Bash command and every file read is blocked with a hook error.** The guard could not start, and it fails closed. The message names the cause: no Python 3 on PATH (install Python 3.10 or later; on Windows the Microsoft Store alias does not count), or on Windows no Git for Windows (install it and restart Claude Code). On macOS or Linux, a launcher that lost its executable bit after a manual copy is fixed with `chmod +x <plugin>/hooks/run-hook.cmd <plugin>/bin/*`. To get your shell back at once, turn the option `secret_guard` off in `/config`.
+Start with `workproof-doctor` (in Claude Code: `! workproof-doctor`, or ask Claude to run it). It checks the Python it found, the shell the hooks start through, whether the launcher starts, the executable bits and git, prints the fix for each failed check, and exits 0 only when all pass. When the hooks cannot start, the session also says so once at its start, with the cause.
+
+- **Every Bash command and every file read is blocked with a hook error.** The guard could not start, and it fails closed. The session-start line and `workproof-doctor` name the cause: no Python 3 on PATH (install Python 3.10 or later; on Windows the Microsoft Store alias does not count), or on Windows no Git for Windows (install it and restart Claude Code). On macOS or Linux, a launcher that lost its executable bit after a manual copy is fixed with `chmod +x <plugin>/hooks/run-hook.cmd <plugin>/bin/*`. To get your shell back at once, turn the option `secret_guard` off in `/config`.
 - **`work-plan: command not found`.** Plugin `bin/` folders are on PATH only inside Claude Code's Bash tool, while the plugin is enabled. Run `/reload-plugins`, or call the script directly: `python <plugin>/scripts/work_plan.py`.
 - **A command was blocked that reads no secret.** The reason says which rule fired. If the file name only looks like a secret (`sample.key`, a `.pem` certificate), run the command yourself in your own terminal, or ask Claude to do the step another way. Report a false block as an issue with the command; do not rename files to get around the guard.
 - **A plan does not show at session start.** The hook prints the plan of the folder the session started in (`<project>/docs/ACTIVE-PLAN.json`, the project being the git top-level). Check `proof_plans` in `/config` and that `WORKPROOF_PLANS_SILENT` is not set; `work-plan show` prints it on demand.
