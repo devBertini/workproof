@@ -1,6 +1,6 @@
 """Docker rules of the guard: commands that print a container system's secrets.
 
-Refused: `docker compose config` without `--no-interpolate` or with `--environment` (they print interpolated values or
+Refused: `docker compose config` (or its older name `convert`) without `--no-interpolate` or with `--environment` (they print interpolated values or
 the environment), `docker inspect` (also `service inspect`) without a `--format` that leaves out the environment
 (`Config.Env`; `--format json` is the whole object), and `env`, `printenv`, `/proc/*/environ` or a file under
 `/run/secrets/` read inside a container (`exec`, `run`). Python 3.10+, standard library only.
@@ -13,7 +13,9 @@ VALUED = {"-f", "--file", "-p", "--project-name", "--profile", "--env-file", "--
           "--progress", "--parallel", "-c", "--context", "-H", "--host", "--config", "-l", "--log-level"}
 # Flags of `compose config` that print names or hashes only.
 CONFIG_NAMES_ONLY = {"--no-interpolate", "--services", "--volumes", "--profiles", "--images", "--networks", "--hash",
-                     "-q", "--quiet"}
+                     "-q", "--quiet", "--help", "-h"}
+# `convert` is the older name of `compose config`.
+CONFIG_COMMANDS = {"config", "convert"}
 WHOLE_OBJECT = re.compile(r"\{\{\s*(json\s+)?\.(Config)?\s*\}\}")
 ENV_READERS = {"env", "printenv"}
 RUN_SECRET = re.compile(r"/run/secrets/[^/\s]+")
@@ -45,8 +47,13 @@ def format_value(args):
     return None
 
 
+def pieces_of(args):
+    """The words of a container command, a script given as one word (`sh -c '...'`) split into its own."""
+    return [p for word in args for p in re.split(r"[\s;|&()]+", word) if p]
+
+
 def reads_environment(args):
-    pieces = [p for word in args for p in re.split(r"[\s;|&()]+", word) if p]
+    pieces = pieces_of(args)
     return any(os.path.basename(p) in ENV_READERS or re.search(r"/proc/[^/\s]+/environ", p) for p in pieces)
 
 
@@ -64,9 +71,9 @@ def docker_verdict(program, args):
         return None
     if sub in ("container", "image") and rest:
         sub, rest = rest[0], rest[1:]
-    if compose and sub == "config" and "--environment" in rest:
+    if compose and sub in CONFIG_COMMANDS and "--environment" in rest:
         return "`docker compose config --environment` prints the environment"
-    if compose and sub == "config" and not CONFIG_NAMES_ONLY.intersection(rest):
+    if compose and sub in CONFIG_COMMANDS and not CONFIG_NAMES_ONLY.intersection(rest):
         return "`docker compose config` prints the interpolated secrets; add `--no-interpolate`"
     if not compose and sub == "service" and rest[:1] == ["inspect"]:
         sub, rest = "inspect", rest[1:]
@@ -78,7 +85,7 @@ def docker_verdict(program, args):
             return "this `docker inspect --format` prints the environment or the whole object"
     if sub in ("exec", "run") and reads_environment(rest):
         return "reading the environment inside a container (`env`, `printenv`, `/proc/*/environ`) prints secrets"
-    if sub in ("exec", "run") and any(RUN_SECRET.search(w) for w in rest) \
-            and any(os.path.basename(w) in FILE_PRINTERS for w in rest):
+    if sub in ("exec", "run") and any(RUN_SECRET.search(p) for p in pieces_of(rest)) \
+            and any(os.path.basename(p) in FILE_PRINTERS for p in pieces_of(rest)):
         return "reading a file under `/run/secrets/` inside a container prints a secret"
     return None

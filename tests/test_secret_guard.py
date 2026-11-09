@@ -224,6 +224,10 @@ DOCKER_BLOCKED = [
     "docker compose config --no-interpolate --environment",
     "docker exec web cat /run/secrets/db_password",
     "docker service inspect api",
+    "docker exec app sh -c 'cat /run/secrets/db'",
+    "docker compose exec -T app bash -c 'head -1 /run/secrets/api_key | wc -c'",
+    "docker compose convert",
+    "docker compose -f compose.yaml convert --format json",
 ]
 
 DOCKER_ALLOWED = [
@@ -242,6 +246,10 @@ DOCKER_ALLOWED = [
     "docker exec web ls /run/secrets/",
     "docker compose exec -T api node -e \"fs.readFileSync('/run/secrets/api_key')\"",
     "docker service inspect --format '{{.Spec.Mode}}' api",
+    "docker compose config --help",
+    "docker compose config -h",
+    "docker compose convert --no-interpolate",
+    "docker exec app sh -c 'ls -l /run/secrets/'",
 ]
 
 
@@ -280,6 +288,37 @@ class Verdicts(unittest.TestCase):
         for pattern, what in secret_patterns.SECRET_NAMES:
             self.assertTrue(what)
             self.assertIsNotNone(secret_patterns.compile_names([(pattern, what)]))
+
+
+class ReviewTwo(unittest.TestCase):
+    """False blocks and a gap found by the line-by-line review."""
+
+    def test_shell_tracing_is_not_a_variable_dump(self):
+        for command in ("set -x", "set -euxo pipefail; make", "set +x", "bash -c 'set -x; ls'"):
+            with self.subTest(command=command):
+                self.assertIsNone(secret_guard.verdict(command))
+        for command in ("set", "set | grep TOKEN", "declare -x", "export -p", "typeset -px"):
+            with self.subTest(command=command):
+                self.assertIsNotNone(secret_guard.verdict(command))
+
+    def test_programs_that_only_write_a_secret_file_run(self):
+        for command in ("echo A=1 | tee .env", "echo A=1 | tee -a deploy/.env", "Set-Content .env -Value 'A=1'",
+                        "Add-Content -Path .env -Value 'B=2'", "'A=1' | Out-File .env"):
+            with self.subTest(command=command):
+                self.assertIsNone(secret_guard.verdict(command))
+        # tee prints what it is given: a secret file fed to it is still a read
+        self.assertIsNotNone(secret_guard.verdict("cat .env | tee copy.txt"))
+        self.assertIsNotNone(secret_guard.verdict("tee out.txt < .env"))
+
+    def test_the_environment_api_named_in_text_that_no_shell_runs(self):
+        api = "[Environment]::GetEnvironmentVariables()"
+        self.assertIsNone(secret_guard.verdict(f"cat > notes.txt <<'EOF'\nlater: {api} lists them\nEOF"))
+        self.assertIsNone(secret_guard.verdict(f"python - <<'EOF'\nprint('{api} is blocked')\nEOF"))
+        for command in (api, f"$x = {api}; $x",
+                        "powershell -Command '[System.Environment]::GetEnvironmentVariable(\"API_TOKEN\")'",
+                        f"powershell <<'EOF'\n{api}\nEOF", f"pwsh -c \"{api}\""):
+            with self.subTest(command=command):
+                self.assertIsNotNone(secret_guard.verdict(command))
 
 
 class Docker(unittest.TestCase):

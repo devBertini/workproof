@@ -35,6 +35,8 @@ NO_READ = {"ls", "dir", "stat", "test", "[", "[[", "chmod", "chown", "file", "ec
            "md5sum", "sha1sum", "sha256sum", "sha512sum", "touch", "rm", "rmdir", "unlink", "mkdir",
            "test-path", "get-childitem", "gci", "get-item", "gi", "split-path", "resolve-path", "get-filehash",
            "remove-item", "ri", "del", "erase", "new-item", "ni"}
+# Programs that write the file they are given and print nothing of it (`tee` prints its input, not the file).
+WRITERS = {"tee", "set-content", "add-content", "out-file"}
 COPIERS = {"cp", "copy-item", "cpi", "copy"}
 MOVERS = {"mv", "move-item", "mi", "move", "ren", "rename-item"}
 GREPS = {"grep", "egrep", "fgrep", "rg"}
@@ -175,6 +177,8 @@ def harmless(program, args, i, names):
     before = args[i - 1] if i > 0 else ""
     if low in NO_READ:
         return True, True
+    if low in WRITERS and before != "<":
+        return True, False
     if REDIRECT.match(before) or before in ("-out", "-o", "--output"):  # `> .env`, `-out key.pem`: written, not read
         return True, False
     if word.startswith("--env-file=") or before == "--env-file":  # loaded into a process's environment
@@ -245,7 +249,8 @@ def environment_dump(segment, program, args):
         secret = next((a for a in args if SECRET_VARIABLE.search(a)), None)
         if secret:
             return f"`printenv {secret}` prints a secret variable"
-    if low in DUMPERS and all(a in ("-p", "-x", "-px", "-xp") for a in args):
+    # `set` prints every variable only when bare: `set -x` and `set -euo pipefail` are shell options.
+    if low in DUMPERS and (not args if low == "set" else all(a in ("-p", "-x", "-px", "-xp") for a in args)):
         return f"`{program}` without a variable name prints every variable"
     if low in ("get-childitem", "gci", "dir", "ls", "get-item", "gi"):
         for a in args:
@@ -312,10 +317,11 @@ def verdict(command, names=None, depth=0):
         return None
     if names is None:
         names = compile_names()
-    api = ENVIRONMENT_API.search(command)
+    text, bodies = split_heredocs(command.replace("\\\n", " "))
+    # Looked for in the command line alone: a heredoc body is text unless a shell runs it (checked below).
+    api = ENVIRONMENT_API.search(text)
     if api and (api.group(0).lower().find("variables") >= 0 or SECRET_VARIABLE.search(api.group(3) or "")):
         return "`[Environment]::GetEnvironmentVariable` here prints environment variables"
-    text, bodies = split_heredocs(command.replace("\\\n", " "))
     lines = text.split("\n")
     for opener, body, quoted in bodies:
         if not quoted:  # the shell expands `$(...)` in an unquoted heredoc body before the program reads it
