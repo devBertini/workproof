@@ -1,10 +1,10 @@
-# prova
+# proofguard
 
-A Claude Code plugin marketplace of small plugins that enforce rather than advise. Work in progress.
+Guardrails for Claude Code that enforce instead of advise: a secret guard for shell, Docker and commits, and plans whose stages close only when a named command passes. Work in progress.
 
-| Plugin | What it does |
-|---|---|
-| [secret-guard](plugins/secret-guard) | Blocks shell and Docker commands that read or print secrets, and commits that stage them. |
-| [proof-plans](plugins/proof-plans) | A plan whose stages close only on a passing command, resumed at every session start. |
+```
+/plugin marketplace add devBertini/proofguard
+/plugin install proofguard --marketplace devBertini/proofguard
+```
 
-License: MIT.
+See [plugins/proofguard](plugins/proofguard) for the modules, options and limits. License: MIT.

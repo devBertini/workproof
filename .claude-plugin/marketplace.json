@@ -1,23 +1,17 @@
 {
-  "name": "prova",
+  "name": "proofguard",
   "owner": {
     "name": "devBertini"
   },
   "metadata": {
-    "description": "Small Claude Code plugins that enforce rather than advise: a guard that stops shell commands from reading or printing secrets, and plans whose stages close only on a passing command.",
+    "description": "Guardrails for Claude Code that enforce instead of advise.",
     "version": "0.1.0"
   },
   "plugins": [
     {
-      "name": "secret-guard",
-      "source": "./plugins/secret-guard",
-      "description": "Blocks Bash and PowerShell commands that read secret files or print credentials, Docker commands that leak them, and commits that stage them.",
-      "category": "security"
-    },
-    {
-      "name": "proof-plans",
-      "source": "./plugins/proof-plans",
-      "description": "A per-project plan whose stages close only when a named command exits green; the plan is printed back at every session start.",
+      "name": "proofguard",
+      "source": "./plugins/proofguard",
+      "description": "Blocks shell and Docker commands that read or print secrets and commits that stage them, and keeps a per-project plan whose stages close only when a named command passes.",
       "category": "productivity"
     }
   ]

@@ -1,0 +1,44 @@
+{
+  "name": "proofguard",
+  "version": "0.1.0",
+  "description": "Guardrails that enforce instead of advise: blocks shell and Docker commands that read or print secrets and commits that stage them, and keeps a per-project plan whose stages close only when a named command passes.",
+  "author": {
+    "name": "devBertini"
+  },
+  "license": "MIT",
+  "keywords": [
+    "security",
+    "secrets",
+    "planning",
+    "verification",
+    "hooks",
+    "docker",
+    "git"
+  ],
+  "userConfig": {
+    "secret_guard": {
+      "type": "boolean",
+      "title": "Secret guard module",
+      "description": "Block Bash and PowerShell commands that read or print secrets, Docker commands that leak them, and commits that stage them.",
+      "default": true
+    },
+    "extra_secret_names": {
+      "type": "string",
+      "title": "Extra secret file names",
+      "description": "File name patterns to guard besides the built-in list, separated by commas or new lines. A * stays inside one folder, ** crosses folders, and a pattern matches the end of a path: *.vault, deploy/keys/**, .my-token",
+      "required": false
+    },
+    "proof_plans": {
+      "type": "boolean",
+      "title": "Proof plans module",
+      "description": "Print the project's plan at every session start; stages close only when a named command passes.",
+      "default": true
+    },
+    "plans_root": {
+      "type": "directory",
+      "title": "Plans root",
+      "description": "Optional folder that holds many projects. When set, the session-start hook also lists the other active plans under it (up to three folders deep). Leave empty to see only the current project's plan.",
+      "required": false
+    }
+  }
+}

@@ -1,0 +1,38 @@
+---
+name: working-in-stages
+description: Runs work that takes more than one step from the project's plan file (docs/ACTIVE-PLAN.json, changed only with the `work-plan` command) - stages with a done-when that names their proof, notes written as you learn, one stage at a time, each closed only on a command that passes. Use before starting multi-step work, and when a new session, a compaction or /clear prints an active plan.
+---
+
+# Working in stages
+
+The project's plan lives at `docs/ACTIVE-PLAN.json` in its git top-level folder. Change it only with `work-plan` (on the Bash PATH while this plugin is enabled), run from inside the project or with `--where <project folder>`:
+
+```
+work-plan new --goal "<the order, quoted as given>"
+work-plan add --title "<stage>" --done-when "<acceptance and the proof that shows it>"
+work-plan start N
+work-plan note N "<decision, file, failing test>"
+work-plan done N --result "<what changed>" --bundle -- <proof command...>   # runs it; closes only on exit 0
+work-plan done N --result "<...>" --proof "<a proof that is not a command>"
+work-plan pause N --reason "<what it waits on>"
+work-plan drop N --reason "<why it is dropped>"
+work-plan show
+work-plan finish                                                            # only once every stage is closed
+```
+
+## The cycle
+
+1. **Split the order into stages a reader can check.** Each stage gets a done-when that names its proof: a test command, a build, a capture, a file to read. If you cannot name the proof, the stage is too vague; split it or sharpen it.
+2. **Start one stage.** Only one stage is in progress at a time; `pause` it (with the reason) before starting another.
+3. **Write a note the moment something is decided or learned**, not at the end. After a compaction or a new session the plan and its notes are all that is left of the stage.
+4. **Close a stage only on its proof.** Prefer `done --bundle -- <command>`: the command runs from the project folder, and the stage closes only if it exits 0, storing the command, exit code, duration, a hash of the whole output and its last lines as evidence. If the command fails, times out or is refused, the stage stays open and the output tells you why. Use `--proof` only for a proof that is not a command, and say exactly what was checked.
+5. **Never close on "should work".** A stage that cannot finish stays open with a note saying where it stopped and why.
+6. **Resume from the printed plan.** At session start (and after `/clear` or a compaction) the plan is printed back: read the stage marked `[now]` and its notes, re-load any skills it needs, and continue. `[verified]` marks a stage closed through `--bundle`.
+
+`done` and `drop` erase the stage's notes: put what must outlast the stage into `--result` or into the project's documents. Stages are only ever marked, never removed. `finish` deletes the plan once every stage is closed, so move what lasts into the project's documents first.
+
+## Notes
+
+- The bundle command refuses outward or destructive commands (`git push`, anything with `--execute`, a recursive `rm`): run those yourself, with the approval they need, and close with `--proof`.
+- A pipeline given to `--bundle` fails when any stage fails; wrap it as `-- bash -c '<pipeline>'`.
+- A plan longer than its stages (research, design) belongs in a document that the goal cites.

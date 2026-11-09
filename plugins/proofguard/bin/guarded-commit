@@ -1,0 +1,16 @@
+#!/bin/sh
+# guarded-commit <repo> "<message>" <path>...
+# Finds a working Python 3 and runs ../scripts/guarded_commit.py. A candidate counts only if it can run code:
+# that skips the Windows Store alias, which exists on PATH but starts no interpreter.
+here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+script="$here/../scripts/guarded_commit.py"
+for py in python3 python; do
+  if command -v "$py" >/dev/null 2>&1 && "$py" -c '' >/dev/null 2>&1; then
+    exec "$py" -B "$script" "$@"
+  fi
+done
+if command -v py >/dev/null 2>&1 && py -3 -c '' >/dev/null 2>&1; then
+  exec py -3 -B "$script" "$@"
+fi
+echo "guarded-commit: no working Python 3 found; tried python3, python and py -3" >&2
+exit 127
