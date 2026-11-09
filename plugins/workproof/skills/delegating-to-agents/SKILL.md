@@ -1,6 +1,6 @@
 ---
 name: delegating-to-agents
-description: Decides whether to hand work to an agent and, when it does, picks this plugin's agent of the activity (reviewer, debugger, implementer, designer, runner) with its model and effort, writes the brief and checks the result before it counts. Use before starting any agent or subagent (an independent review, a parallel task, a research run), and before deciding whether to delegate at all.
+description: "Decides whether to delegate and, if so, picks this plugin's agent for the activity (reviewer, debugger, implementer, designer, runner), writes its brief and checks its result. Use before starting any agent or subagent: an independent review, a parallel task, a research run."
 ---
 
 # Delegating to agents

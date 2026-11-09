@@ -1,6 +1,6 @@
 ---
 name: mapping-flows
-description: Keeps a project's flow map (docs/FLOWS.md) true with the check-flows engine - the cycle of a change, what each status means and why only the engine writes it, what a flow may cite as proof, how to choose what to rerun, the modes and exit codes, merging maps from parallel worktrees, and scripts/flows.json. Use when a project has a flow map, before changing its code, when deciding what to retest, before running the flow check, or when adding, renaming or splitting a flow or a test the map cites.
+description: "Keeps a project's flow map (docs/FLOWS.md) true with the check-flows engine: statuses, proofs, what to rerun, modes, scripts/flows.json. Use when a project has a flow map: before changing its code, when deciding what to retest, before running the flow check, or when adding or renaming a flow or a test the map cites."
 ---
 
 # Mapping flows

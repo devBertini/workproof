@@ -1,6 +1,6 @@
 ---
 name: maintaining-rules
-description: Keeps a project's instructions for Claude right - where each rule lives (CLAUDE.md files, path-scoped rules, skills, agents, hooks, permission rules), how it is written, and how a change is proven and committed. Use before creating or editing a CLAUDE.md, a .claude/rules file, a skill, an agent, a hook or a settings file, and whenever the user corrects or decides something ("from now on", "always", "never"), a fact proves wrong, or a skill lacked what the work needed.
+description: "Keeps a project's instructions for Claude right: where each rule lives (CLAUDE.md, path-scoped rules, skills, hooks, permission rules) and how it is written and proven. Use before editing a CLAUDE.md, a .claude/rules file, a skill, an agent, a hook or a settings file, and when the user corrects or decides something (\"from now on\", \"always\", \"never\")."
 ---
 
 # Maintaining rules

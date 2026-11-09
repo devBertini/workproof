@@ -71,7 +71,7 @@ Nothing else: no log, no cache, nothing in your home folder or in the plugin's o
 
 **Environment variables it reads:** `CLAUDE_PLUGIN_OPTION_*` (the options below, set by Claude Code), `WORKPROOF_EXTRA_SECRET_NAMES`, `WORKPROOF_PLANS_ROOT`, `WORKPROOF_PLANS_SILENT`, `WORKPROOF_COMPACT_ON_STAGE_CLOSE`, `WORKPROOF_REFUSE_INHERITING_AGENTS`, `WORKPROOF_COMMIT_*`, `WORKPROOF_BUNDLE_REFUSE`, `CLAUDE_CODE_SESSION_ID`, `CLAUDE_CODE_GIT_BASH_PATH`, `COMSPEC`. The secret guard reads the names of variables in a command, never their values.
 
-**Context cost:** about 1,900 tokens in every session (the descriptions of 11 skills and 5 agents, from `claude plugin details`); a skill's text is loaded only when it is used. The hooks add no tokens unless they print (the plan at session start, a block's reason).
+**Context cost:** about 1,500 tokens in every session (the descriptions of 11 skills and 5 agents, from `claude plugin details`); a skill's text is loaded only when it is used. The hooks add no tokens unless they print (the plan at session start, a block's reason).
 
 ## Options
 

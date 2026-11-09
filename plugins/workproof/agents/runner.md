@@ -1,6 +1,6 @@
 ---
 name: runner
-description: "Runs mechanical work with a checkable result: a known suite or script read against a checklist, a search or extraction, a sweep of a phrase across files, a summary of a long log or page with quotes and addresses. Use when no judgement is needed."
+description: "Runs mechanical work with a checkable result: a known suite or script, a search or extraction, a sweep across files, a summary of a long log or page with quotes. Use when no judgement is needed."
 tools: Read, Grep, Glob, Bash, Edit, Write, WebSearch, WebFetch
 model: haiku
 effort: medium

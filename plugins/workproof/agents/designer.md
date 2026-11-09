@@ -1,6 +1,6 @@
 ---
 name: designer
-description: "Drafts work judged by taste or carrying product or store risk: game design, architecture, a plan, an art or audio direction, store text. Use when the result is a proposal or options for the session or the user to decide."
+description: "Drafts work judged by taste or carrying product or store risk: game design, architecture, a plan, an art or audio direction, store text. Use when the result is a proposal or options to decide."
 tools: Read, Grep, Glob, Bash, Edit, Write, Skill, WebSearch, WebFetch
 model: opus
 effort: medium

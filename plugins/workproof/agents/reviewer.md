@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: "Reviews a change, plan, document or claim it did not write and reports each defect with its evidence, without editing files. Use for an independent review, adversarial verification of a finding, or a reader without the author's bias; the brief gives the work to judge, never the author's conclusion."
+description: "Reviews a change, plan, document or claim it did not write and reports each defect with its evidence, editing nothing. Use for an independent review or a reader without the author's bias; the brief gives the work, never the author's conclusion."
 tools: Read, Grep, Glob, Bash, Skill
 model: opus
 effort: high

@@ -1,6 +1,6 @@
 ---
 name: laying-out-buttons
-description: Places, sizes and styles the buttons of a screen - the order of confirming and cancelling actions per platform, one prominent action per view, destructive actions never the default, hit targets and spacing. Use when building, changing or reviewing a screen, dialog, alert, sheet, form, wizard, toolbar or game menu that has buttons, in an app, game, site or desktop program.
+description: "Places and styles the buttons of a screen: the order of confirming and cancelling actions per platform, one prominent action, destructive never the default, hit targets. Use when building or reviewing a screen, dialog, alert, form, wizard, toolbar or game menu that has buttons."
 ---
 
 # Laying out buttons

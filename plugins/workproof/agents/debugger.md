@@ -1,6 +1,6 @@
 ---
 name: debugger
-description: "Finds the cause of a failure nobody has explained yet (a failing test, a crash, a hang, wrong output), fixes it at the cause and proves the fix. Use when the session's first look did not find the cause."
+description: "Finds the cause of a failure nobody has explained yet (a failing test, a crash, a hang, wrong output), fixes it at the cause and proves the fix. Use when a first look did not find the cause."
 tools: Read, Grep, Glob, Bash, Edit, Write, Skill
 model: opus
 effort: high

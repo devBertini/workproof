@@ -2,4 +2,4 @@
 type: llm
 ---
 
-PASS if the answer puts Cancel on the leading (left) side and Delete on the trailing (right) side, says Delete must NOT be the default button (Enter/Return must not trigger Delete), says Esc triggers Cancel, and styles Delete as destructive (red). FAIL if Delete is the default, answers Enter, or sits on the left.
+PASS if the answer puts Cancel on the leading (left) side and Delete on the trailing (right) side AND says Delete is not the default button (Enter or Return does not trigger Delete). FAIL if Delete sits on the left, or Delete answers Enter.

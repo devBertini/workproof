@@ -1,6 +1,6 @@
 ---
 name: implementer
-description: "Carries out decided work to a written spec: edits, routine code and tests, a document, captures. Use when the spec leaves no design choice open."
+description: "Carries out decided work to a written spec: edits, routine code and tests, a document. Use when the spec leaves no design choice open."
 tools: Read, Grep, Glob, Bash, Edit, Write, Skill
 model: sonnet
 effort: medium

@@ -1,6 +1,6 @@
 ---
 name: guarding-secrets
-description: "Works with the plugin's secret guard instead of around it - what its hooks block in shell commands, Docker commands and the Read, Grep and Edit tools, what stays allowed, and how to finish the task without the secret's value. Use when a call was blocked as \"Blocked by workproof (secret-guard module)\", before reading, searching, editing or copying a .env file, key, token or credential file, before inspecting Docker containers or compose files, and before committing files that may hold secrets."
+description: "Works with the plugin's secret guard, not around it: what its hooks block (shell, Docker, the Read, Grep and Edit tools) and how to finish without the secret's value. Use when a call was blocked by the workproof secret guard, before reading, searching or copying a .env file, key, token or credential file, and before committing files that may hold secrets."
 ---
 
 # Guarding secrets

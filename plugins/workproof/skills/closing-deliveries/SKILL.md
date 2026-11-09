@@ -1,6 +1,6 @@
 ---
 name: closing-deliveries
-description: Closes a delivery - checks that the order is done and proven, leaves the machine clean (servers, containers, emulators, worktrees, scratch), brings the project's documents, plan, instructions and commits up to date, and writes the final report. Use before the final report of any delivery or session, and when the user says to stop, pause, wrap up or that they are done for the day.
+description: "Closes a delivery: checks the order is done and proven, cleans the machine, updates documents, plan and commits, and writes the final report. Use before the final report of a delivery or session, and when the user says to stop, wrap up or that they are done for the day."
 ---
 
 # Closing a delivery
