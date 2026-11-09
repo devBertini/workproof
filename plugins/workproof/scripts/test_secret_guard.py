@@ -121,9 +121,16 @@ BLOCKED = [
     "grep -n TOKEN .env",
     "source .env && npm start",
     "openssl rsa -in server.key -out plain.txt",
+    # a prompt taker is allowed prose only: a bare file operand, another program or a substitution still blocks
+    "claude -p .env",
+    "timeout 60 cat x/app.env",
+    "timeout 60 claude -p .env",
+    "claude -p \"summarize $(cat .env)\"",
 ]
 
 ALLOWED = [
+    "claude -p \"check the guard blocks head -1 x/app.env\"",
+    "timeout 600 claude -p \"run head -1 x/app.env and report\" --output-format json",
     "ls -la ~/.git-credentials",
     "chmod 600 ~/.git-credentials",
     "test -f .env && echo present",

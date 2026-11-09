@@ -186,6 +186,8 @@ def harmless(program, args, i, names):
         if sub in GIT_NAME_ONLY or (sub == "rm" and "--cached" in args):
             return True, True
         return before in ("-m", "--message") and sub in ("commit", "tag", "merge", "stash"), False
+    if prompt_taker(low, args, i) and any(c.isspace() for c in word):
+        return True, False  # prose handed to an agent CLI as its prompt: nothing reads the file it mentions
     if low == "find":
         return not FIND_RUNS.intersection(args), True
     if low in GREPS:
@@ -200,6 +202,24 @@ def harmless(program, args, i, names):
         operands = [a for a in args if not a.startswith("-")]
         return all(secret_kind(a, names) for a in operands), False
     return False, False
+
+
+PROMPT_TAKERS = {"claude"}
+
+
+def prompt_taker(low, args, i):
+    """True when the program, or the one `timeout <duration>` starts, is an agent CLI that takes args[i] as text."""
+    if low in PROMPT_TAKERS:
+        return True
+    if low != "timeout":
+        return False
+    rest = [(j, a) for j, a in enumerate(args) if not a.startswith("-")]
+    if len(rest) < 2:
+        return False
+    j, name = rest[1]
+    name = os.path.basename(name.replace("\\", "/")).lower()
+    name = name[:-4] if name.endswith(".exe") else name
+    return name in PROMPT_TAKERS and i > j
 
 
 def copy_destination(args, i, names):
