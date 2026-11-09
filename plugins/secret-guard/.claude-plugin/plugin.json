@@ -1,0 +1,10 @@
+{
+  "name": "secret-guard",
+  "version": "0.1.0",
+  "description": "Blocks Bash and PowerShell commands that read secret files or print credentials, Docker commands that leak them, and commits that stage them.",
+  "author": {
+    "name": "devBertini"
+  },
+  "license": "MIT",
+  "keywords": ["security", "secrets", "hooks", "docker", "git"]
+}
