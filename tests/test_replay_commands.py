@@ -33,6 +33,23 @@ class Replay(unittest.TestCase):
         self.assertIn("commands replayed: 5", text)
         self.assertIn("unique commands: 4", text)
         self.assertIn("blocked: 4 (3 unique)", text)
+        self.assertIn("file tool calls replayed: 1", text)
+        self.assertIn("file tool calls blocked: 0", text)
+
+    def test_file_tool_calls_are_counted_apart(self):
+        def use(tool, tool_input):
+            return {"type": "assistant", "message": {"content": [{"type": "tool_use", "name": tool, "input": tool_input}]}}
+        entries = [use("Read", {"file_path": "/w/README.md"}), use("Read", {"file_path": "/w/app/prod.pem"}),
+                   use("Grep", {"pattern": "x", "glob": "**/*.key"}), use("Write", {"file_path": "/w/a.pem"})]
+        with tempfile.TemporaryDirectory() as folder:
+            with open(os.path.join(folder, "a.jsonl"), "w", encoding="utf-8") as handle:
+                handle.write("\n".join(json.dumps(e) for e in entries) + "\n")
+            out = io.StringIO()
+            replay_commands.replay([folder], out=out)
+        text = out.getvalue()
+        self.assertIn("commands replayed: 0", text)
+        self.assertIn("file tool calls replayed: 3", text)
+        self.assertIn("file tool calls blocked: 2", text)
         self.assertNotIn(".env\n", text.replace("(environment file (.env))", ""))
 
     def test_the_report_holds_no_command_text(self):

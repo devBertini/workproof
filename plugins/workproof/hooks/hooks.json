@@ -28,6 +28,17 @@
         ]
       },
       {
+        "matcher": "Read|Grep|Edit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" file_guard.py",
+            "timeout": 10,
+            "onFailure": "block"
+          }
+        ]
+      },
+      {
         "matcher": "Agent",
         "hooks": [
           {

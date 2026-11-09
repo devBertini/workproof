@@ -4,7 +4,7 @@
 
 First public release.
 
-- Secret guard: a hook on Bash and PowerShell commands that blocks reads of secret files, environment dumps and Docker commands that print secrets; `guarded-commit`, which refuses secret file names and token formats in what it commits.
+- Secret guard: a hook on Bash and PowerShell commands that blocks reads of secret files, environment dumps and Docker commands that print secrets; a hook on the Read, Grep, Edit and NotebookEdit tools that blocks them on a secret file; `guarded-commit`, which refuses secret file names and token formats in what it commits.
 - Proof plans: `work-plan` and `verify-run`; a session-start hook that prints the project's plan; optional compaction of the conversation when a stage closes.
 - Agent roles: five agents by activity, and a hook that asks before one runs on a model above its default.
 - Commit rules for `guarded-commit`, turned on by environment variables.

@@ -4,7 +4,8 @@
     replay_commands.py <transcript.jsonl | folder>... [--skip <text in path>]... [--show-blocked]
 
 Every `tool_use` block of the Bash and PowerShell tools in each transcript (folders are searched for *.jsonl) is
-run through secret_guard.verdict. The report holds counts only: commands replayed, unique commands, blocked ones,
+run through secret_guard.verdict, and every call of the file tools (Read, Grep, Edit, NotebookEdit) through
+file_guard.verdict. The report holds counts only: commands replayed, unique commands, blocked ones,
 and the blocks grouped by the kind of rule that fired. Commands are never written anywhere. With --show-blocked
 each blocked command is also printed to the terminal, cut to 160 characters, so a person can review it.
 --skip leaves out transcript files whose path contains the text (for example the session doing the replay).
@@ -19,6 +20,7 @@ import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, "plugins", "workproof", "scripts"))
+import file_guard  # noqa: E402
 import secret_guard  # noqa: E402
 import secret_patterns  # noqa: E402
 
@@ -54,6 +56,9 @@ def commands_in(path):
                     command = (block.get("input") or {}).get("command")
                     if isinstance(command, str):
                         yield block["name"], command
+                elif isinstance(block, dict) and block.get("type") == "tool_use" \
+                        and block.get("name") in file_guard.PATH_FIELDS and isinstance(block.get("input"), dict):
+                    yield block["name"], block["input"]
 
 
 def category(reason):
@@ -67,12 +72,21 @@ def category(reason):
 def replay(paths, show=False, skip=(), out=sys.stdout):
     names = secret_patterns.compile_names(secret_patterns.extra_names_from_env())
     total, seen, blocked_unique = 0, set(), set()
-    blocked = 0
+    blocked = file_total = file_blocked = 0
     kinds = collections.Counter()
     for path in transcript_files(paths):
         if any(text in path for text in skip):
             continue
         for tool, command in commands_in(path):
+            if isinstance(command, dict):  # a file tool call: counted apart, shown by its reason only
+                file_total += 1
+                reason = file_guard.verdict(tool, command, names)
+                if reason:
+                    file_blocked += 1
+                    kinds["file tool, " + category(reason)] += 1
+                    if show:
+                        print(f"[{tool}] {reason[:200]}", file=out)
+                continue
             total += 1
             key = hashlib.sha256((tool + "\0" + command).encode("utf-8", "replace")).hexdigest()
             text = command.replace("\\", "/") if tool == "PowerShell" else command
@@ -88,6 +102,8 @@ def replay(paths, show=False, skip=(), out=sys.stdout):
     print(f"commands replayed: {total}", file=out)
     print(f"unique commands: {len(seen)}", file=out)
     print(f"blocked: {blocked} ({len(blocked_unique)} unique)", file=out)
+    print(f"file tool calls replayed: {file_total}", file=out)
+    print(f"file tool calls blocked: {file_blocked}", file=out)
     for kind, count in kinds.most_common():
         print(f"  {count:4d}  {kind}", file=out)
     return 0

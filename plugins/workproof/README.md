@@ -4,7 +4,7 @@ Guardrails for Claude Code that enforce instead of advise. One plugin, several m
 
 | Module | What it does |
 |---|---|
-| Secret guard | Blocks Bash and PowerShell commands that read or print secrets, Docker commands that leak them, and commits that stage them. |
+| Secret guard | Blocks Bash and PowerShell commands that read or print secrets, Docker commands that leak them, the file tools (Read, Grep, Edit) on a secret file, and commits that stage secrets. |
 | Proof plans | Keeps one plan per project; a stage closes on a named command that passes (a written proof is shown as unverified), and the plan is printed back at every session start. Optionally compacts the conversation when a stage closes. |
 | Agent roles | Five agents by activity (implementer, reviewer, debugger, designer, runner) on a fitting model each; a call that asks one for a bigger model asks you first. |
 | Commit rules | Optional rules for `guarded-commit`: one Conventional Commit line, a file size cap, new files that must not be committed. |
@@ -48,6 +48,7 @@ And one to see the guard: ask Claude to `show me what is in .env`. The command i
 |---|---|---|
 | Session start, `/clear`, a compaction | `scripts/work_plan.py hook` | Prints the project's plan, if one exists. |
 | Before each Bash or PowerShell command | `scripts/secret_guard.py` | Reads the command text and blocks it or lets it run. It never runs the command and never opens the files it names. |
+| Before each Read, Grep, Edit or NotebookEdit call | `scripts/file_guard.py` | Reads the file path or glob the tool was given and blocks the call when it names a secret file. It never opens the file. |
 | Before each Agent call | `scripts/agent_guard.py` | Reads the agent type and model; may ask you or refuse. |
 | In the Claude Code process | `hooks/register.ts` (hooks module) | Registers the `watch_run` tool. With `compact_on_stage_close` on, it also reads the output of Bash calls that ran `work-plan done`, runs `git status --porcelain` in the plan's repository at the end of that turn and asks Claude Code to compact. |
 
@@ -76,7 +77,7 @@ Nothing else: no log, no cache, nothing in your home folder or in the plugin's o
 
 | Option | Default | Effect |
 |---|---|---|
-| `secret_guard` | on | The secret guard hook. |
+| `secret_guard` | on | The secret guard hooks, for shell commands and for the file tools. |
 | `extra_secret_names` | empty | More file name patterns for the secret guard. |
 | `proof_plans` | on | The session-start plan hook. |
 | `plans_root` | empty | A folder of many projects whose active plans are listed at session start. |
@@ -97,7 +98,7 @@ A skill cannot be unloaded by a plugin option: a switched-off module's skill tel
 
 ## Secret guard
 
-The secret guard stops the shell from reading or printing secrets. A hook inspects every Bash and PowerShell command before it runs and blocks the ones that would read a credential file, print a container's environment or leak a compose file's values. A small command, `guarded-commit`, commits only the paths you name and refuses when a secret would go in.
+The secret guard stops Claude from reading or printing secrets. One hook inspects every Bash and PowerShell command before it runs and blocks the ones that would read a credential file, print a container's environment or leak a compose file's values. A second hook does the same for the file tools: Read, Edit and NotebookEdit of a secret file, and a Grep inside one. A small command, `guarded-commit`, commits only the paths you name and refuses when a secret would go in.
 
 It is a pattern guard against mistakes, not a sandbox. See [Limits](#limits).
 
@@ -113,6 +114,8 @@ A command is blocked, with exit code 2 and the reason on stderr for Claude, when
 
 It lets through what prints nothing of a secret file: listing, testing, hashing or counting it (`ls`, `test`, `stat`, `wc`, `sha256sum`, `Test-Path`, `Get-ChildItem`), creating, writing or removing it (`touch`, `rm`, `Remove-Item`, `> .env`, `tee .env`, `Set-Content`, `cat > .env <<'EOF'`, a copy or a rename into it), handing it to a tool that uses it without printing it (`ssh -i`, `scp -i`, `--env-file`), and naming it as a search pattern, a `--include` glob or in a commit message.
 
+The file tools follow the same names: `Read`, `Edit` and `NotebookEdit` of a secret file are blocked (an edit shows the text around the change), and so is a `Grep` whose path is a secret file or whose glob picks secret files (`.env*`, `**/*.pem`). Creating such a file with `Write` is allowed, placeholder files (`.env.example`) stay readable, and a line is added to an existing secret file from the shell (`echo 'KEY=value' >> .env`).
+
 Examples:
 
 | Command | Result |
@@ -126,6 +129,9 @@ Examples:
 | `docker compose --env-file .env up -d` | allowed |
 | `cp .env.example .env` | allowed (writes, prints nothing) |
 | `cat .env.example` | allowed |
+| Read tool on `.env` | blocked |
+| Grep tool with glob `**/*.pem` | blocked |
+| Write tool creating `.env` | allowed |
 
 ### Options
 
@@ -151,7 +157,7 @@ Otherwise it commits with the message as written. It never pushes. By default it
 
 ### Measured
 
-On one developer's local Claude Code transcripts, 42,532 Bash and PowerShell commands were replayed through the guard and every block was reviewed: 38 blocks, 24 intended (11 of them were tests of the guard itself; the rest were reads of `.env` files, environment dumps such as `env | grep` and Docker inspections) and 14 false (0.03% of commands). The false blocks were all interpreter code that only mentions a secret file name, mostly scripts editing a text file that contains the name. The guard called through Git Bash and the launcher on Windows 11 takes a median of 74 ms and a p95 of 78 ms (200 calls).
+On one developer's local Claude Code transcripts, 42,532 Bash and PowerShell commands were replayed through the guard and every block was reviewed: 38 blocks, 24 intended (11 of them were tests of the guard itself; the rest were reads of `.env` files, environment dumps such as `env | grep` and Docker inspections) and 14 false (0.03% of commands). The false blocks were all interpreter code that only mentions a secret file name, mostly scripts editing a text file that contains the name. Of 10,982 Read, Grep, Edit and NotebookEdit calls in the same transcripts, the file-tool hook blocked 1, a Read of a `.env` file, and none falsely. Each hook, called through Git Bash and the launcher on Windows 11, takes a median of 65 to 74 ms and a p95 under 80 ms (200 calls each): that is added to every shell command and every file read.
 
 ### Limits
 
@@ -160,9 +166,10 @@ On one developer's local Claude Code transcripts, 42,532 Bash and PowerShell com
 - Interpreter code that merely mentions a secret file name, for example a script that edits a text file containing the name, is blocked too: the guard cannot tell a mention from a read. So is `source .env`: a malformed line makes the shell echo it back.
 - A variable is recognized as secret by its name only (`TOKEN`, `SECRET`, `PASSWORD`, `API_KEY`, `CREDENTIAL` and the like); printing a secret held in a variable with an ordinary name gets past it, and so does interpreter code that prints its environment (`print(os.environ)`).
 - On Windows, a plugin folder whose path holds `&` breaks the launcher under cmd.exe and the hook does not run.
-- It sees commands, not file contents: a secret that reaches the conversation by another route (a file tool, a copied value) is outside it.
+- It sees commands and file names, not file contents: a secret inside a file with an ordinary name, or one that reaches the conversation by another route (a pasted value, a tool of another plugin or MCP server), is outside it.
+- A Grep over a folder is not blocked, so it can show a matching line of a secret file in that folder; a Glob lists names only.
 - A command `ssh` runs on a remote host (`ssh host "cat .env"`) is judged like a local one, since its output comes back here; a remote command run another way (a script already on the host) is outside it. A multi-word prompt given to `claude` (also behind `timeout`) is prose, not a read, so a secret file name inside it passes; the agent it starts has its own guard.
-- The guard fails closed: if its hook cannot start (no Python), crashes or passes its 10 s timeout, the command is blocked (`onFailure: "block"`, Claude Code 2.1.295 or later; older versions let the command run).
+- The guard fails closed: if a hook cannot start (no Python), crashes or passes its 10 s timeout, the command or file call is blocked (`onFailure: "block"`, Claude Code 2.1.295 or later; older versions let the command run).
 
 ## Proof plans
 
@@ -292,7 +299,7 @@ The `watch_run` tool (a hooks module) follows the log of a command started in th
 
 ## Troubleshooting
 
-- **Every Bash command is blocked with a hook error.** The guard could not start, and it fails closed. The message names the cause: no Python 3 on PATH (install Python 3.10 or later; on Windows the Microsoft Store alias does not count), or on Windows no Git for Windows (install it and restart Claude Code). On macOS or Linux, a launcher that lost its executable bit after a manual copy is fixed with `chmod +x <plugin>/hooks/run-hook.cmd <plugin>/bin/*`. To get your shell back at once, turn the option `secret_guard` off in `/config`.
+- **Every Bash command and every file read is blocked with a hook error.** The guard could not start, and it fails closed. The message names the cause: no Python 3 on PATH (install Python 3.10 or later; on Windows the Microsoft Store alias does not count), or on Windows no Git for Windows (install it and restart Claude Code). On macOS or Linux, a launcher that lost its executable bit after a manual copy is fixed with `chmod +x <plugin>/hooks/run-hook.cmd <plugin>/bin/*`. To get your shell back at once, turn the option `secret_guard` off in `/config`.
 - **`work-plan: command not found`.** Plugin `bin/` folders are on PATH only inside Claude Code's Bash tool, while the plugin is enabled. Run `/reload-plugins`, or call the script directly: `python <plugin>/scripts/work_plan.py`.
 - **A command was blocked that reads no secret.** The reason says which rule fired. If the file name only looks like a secret (`sample.key`, a `.pem` certificate), run the command yourself in your own terminal, or ask Claude to do the step another way. Report a false block as an issue with the command; do not rename files to get around the guard.
 - **A plan does not show at session start.** The hook prints the plan of the folder the session started in (`<project>/docs/ACTIVE-PLAN.json`, the project being the git top-level). Check `proof_plans` in `/config` and that `WORKPROOF_PLANS_SILENT` is not set; `work-plan show` prints it on demand.
