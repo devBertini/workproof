@@ -1,0 +1,12 @@
+{
+ "devices": [],
+ "testNodes": [
+  {
+   "children": [],
+   "name": "Demo",
+   "nodeType": "Test Plan",
+   "result": "Passed"
+  }
+ ],
+ "testPlanConfigurations": []
+}

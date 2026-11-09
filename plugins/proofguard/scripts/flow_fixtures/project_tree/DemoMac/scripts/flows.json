@@ -1,0 +1,40 @@
+{
+  "project": "DemoMac",
+  "platform": "macos",
+  "ui_needs_flag": true,
+  "unit_targets": [
+    {
+      "name": "DemoMacTests",
+      "dir": "DemoMacTests"
+    }
+  ],
+  "ui_targets": [
+    {
+      "name": "DemoMacUITests",
+      "dir": "DemoMacUITests"
+    }
+  ],
+  "packages": [
+    {
+      "target": "DemoCoreTests",
+      "dir": "Packages/DemoCore",
+      "tests_dir": "Packages/DemoCore/Tests",
+      "runner": "swift-test"
+    }
+  ],
+  "sources": [
+    "DemoMac",
+    "DemoMacTests",
+    "DemoMacUITests",
+    {
+      "dir": "Packages",
+      "patterns": [
+        "*.swift"
+      ]
+    }
+  ],
+  "source_patterns": [
+    "*.swift",
+    "*.xcstrings"
+  ]
+}

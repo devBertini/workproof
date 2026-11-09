@@ -1,0 +1,38 @@
+{
+ "devices": [],
+ "testNodes": [
+  {
+   "children": [
+    {
+     "children": [
+      {
+       "children": [
+        {
+         "duration": "0,01s",
+         "durationInSeconds": 0.01,
+         "name": "testOpensDetail()",
+         "nodeIdentifier": "HomeUITests/testOpensDetail()",
+         "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoUITests/HomeUITests/testOpensDetail()",
+         "nodeType": "Test Case",
+         "result": "Passed"
+        }
+       ],
+       "name": "HomeUITests",
+       "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoUITests/HomeUITests",
+       "nodeType": "Test Suite",
+       "result": "Passed"
+      }
+     ],
+     "name": "DemoUITests",
+     "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoUITests",
+     "nodeType": "UI test bundle",
+     "result": "Passed"
+    }
+   ],
+   "name": "Demo",
+   "nodeType": "Test Plan",
+   "result": "Passed"
+  }
+ ],
+ "testPlanConfigurations": []
+}

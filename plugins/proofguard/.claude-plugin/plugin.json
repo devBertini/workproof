@@ -1,7 +1,7 @@
 {
   "name": "proofguard",
   "version": "0.1.0",
-  "description": "Guardrails that enforce instead of advise: a secret guard for shell, Docker and commits; per-project plans whose stages close only on a command that passes; agent roles with model limits; commit rules; and skills for delivery, Docker, Rust and button layout. Each module switches on or off in the plugin options.",
+  "description": "Guardrails that enforce instead of advise: a secret guard for shell, Docker and commits; per-project plans whose stages close only on a command that passes; agent roles with model limits; commit rules; a flow map kept true by its tests; and skills for delivery, Docker, Rust and button layout. Each module switches on or off in the plugin options.",
   "author": {
     "name": "devBertini"
   },
@@ -17,7 +17,8 @@
     "agents",
     "workflow",
     "commits",
-    "rust"
+    "rust",
+    "flow-map"
   ],
   "userConfig": {
     "secret_guard": {
@@ -97,6 +98,12 @@
       "title": "Compact on stage close",
       "description": "When work-plan done closes a stage in the main session, and the plan repository is committed with a stage still pending, compact the conversation at the end of that turn. Needs the proof plans module.",
       "default": false
+    },
+    "flow_map": {
+      "type": "boolean",
+      "title": "Flow map module",
+      "description": "Keep each project flow map (docs/FLOWS.md) true: the check-flows engine recomputes every flow status from the tests and screenshots it cites, and two skills teach the method.",
+      "default": true
     }
   }
 }

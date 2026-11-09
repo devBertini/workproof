@@ -1,0 +1,44 @@
+{
+  "project": "DemoGame",
+  "platform": "ios",
+  "device_kind": "phone",
+  "device_classes": {},
+  "devices": {
+    "phone": "Demo-iPhone-abc123"
+  },
+  "unit_targets": [
+    {
+      "name": "DemoGameTests",
+      "dir": "DemoGameTests"
+    }
+  ],
+  "ui_targets": [
+    {
+      "name": "DemoGameUITests",
+      "dir": "DemoGameUITests"
+    }
+  ],
+  "packages": [
+    {
+      "target": "PhysicsTests",
+      "dir": "Packages/Physics",
+      "tests_dir": "Packages/Physics/Tests",
+      "runner": "xcodebuild",
+      "scheme": "Physics"
+    }
+  ],
+  "sources": [
+    "DemoGame",
+    "DemoGameTests",
+    "DemoGameUITests",
+    "Packages/Physics/Sources",
+    "Packages/Physics/Tests",
+    "Packages/Art/Sources"
+  ],
+  "source_patterns": [
+    "*.swift",
+    "*.xcstrings",
+    "*.json",
+    "*.caf"
+  ]
+}

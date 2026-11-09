@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+<testsuite name="DemoCoreTests.xctest" errors="0" tests="2" failures="1" skipped="0" time="0.01">
+<testcase classname="DemoCoreTests.CoreRulesTests" name="testRule" time="0.001">
+</testcase>
+<testcase classname="DemoCoreTests.CoreRulesTests" name="testBroken" time="0.001">
+<failure message="XCTAssertEqual failed: (1) is not equal to (2)">
+</failure>
+</testcase>
+</testsuite>
+</testsuites>

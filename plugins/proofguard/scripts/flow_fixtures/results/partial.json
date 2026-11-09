@@ -1,0 +1,38 @@
+{
+ "devices": [],
+ "testNodes": [
+  {
+   "children": [
+    {
+     "children": [
+      {
+       "children": [
+        {
+         "duration": "0,01s",
+         "durationInSeconds": 0.01,
+         "name": "testA()",
+         "nodeIdentifier": "RulesTests/testA()",
+         "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/RulesTests/testA()",
+         "nodeType": "Test Case",
+         "result": "Passed"
+        }
+       ],
+       "name": "RulesTests",
+       "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/RulesTests",
+       "nodeType": "Test Suite",
+       "result": "Passed"
+      }
+     ],
+     "name": "DemoTests",
+     "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests",
+     "nodeType": "Unit test bundle",
+     "result": "Passed"
+    }
+   ],
+   "name": "Demo",
+   "nodeType": "Test Plan",
+   "result": "Passed"
+  }
+ ],
+ "testPlanConfigurations": []
+}

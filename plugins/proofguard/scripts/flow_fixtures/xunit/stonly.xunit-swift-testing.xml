@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+<testsuite name="Swift Testing Results" errors="0" tests="1" failures="0" skipped="0" time="0.01">
+<testcase classname="DemoCoreTests.EngineTests" name="engineRuns()" time="0.001"/>
+</testsuite>
+</testsuites>

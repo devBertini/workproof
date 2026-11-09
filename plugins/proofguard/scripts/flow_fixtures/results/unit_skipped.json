@@ -1,0 +1,184 @@
+{
+ "devices": [],
+ "testNodes": [
+  {
+   "children": [
+    {
+     "children": [
+      {
+       "children": [
+        {
+         "duration": "0,01s",
+         "durationInSeconds": 0.01,
+         "name": "testA()",
+         "nodeIdentifier": "RulesTests/testA()",
+         "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/RulesTests/testA()",
+         "nodeType": "Test Case",
+         "result": "Passed"
+        },
+        {
+         "duration": "0,01s",
+         "durationInSeconds": 0.01,
+         "name": "testB()",
+         "nodeIdentifier": "RulesTests/testB()",
+         "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/RulesTests/testB()",
+         "nodeType": "Test Case",
+         "result": "Skipped"
+        }
+       ],
+       "name": "RulesTests",
+       "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/RulesTests",
+       "nodeType": "Test Suite",
+       "result": "Passed"
+      },
+      {
+       "children": [
+        {
+         "duration": "0,01s",
+         "durationInSeconds": 0.01,
+         "name": "rounds half up",
+         "nodeIdentifier": "PricingTests/roundsHalfUp()",
+         "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/PricingTests/roundsHalfUp()",
+         "nodeType": "Test Case",
+         "result": "Passed"
+        },
+        {
+         "duration": "0,01s",
+         "durationInSeconds": 0.01,
+         "name": "loads()",
+         "nodeIdentifier": "PricingTests/loads()",
+         "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/PricingTests/loads()",
+         "nodeType": "Test Case",
+         "result": "Passed"
+        },
+        {
+         "duration": "0,01s",
+         "durationInSeconds": 0.01,
+         "name": "extension sentence",
+         "nodeIdentifier": "PricingTests/extensionCase()",
+         "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/PricingTests/extensionCase()",
+         "nodeType": "Test Case",
+         "result": "Passed"
+        }
+       ],
+       "name": "Pricing rules",
+       "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/Pricing rules",
+       "nodeType": "Test Suite",
+       "result": "Passed"
+      },
+      {
+       "children": [
+        {
+         "duration": "0,01s",
+         "durationInSeconds": 0.01,
+         "name": "tag sentence",
+         "nodeIdentifier": "TaggedTests/tagCase()",
+         "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/TaggedTests/tagCase()",
+         "nodeType": "Test Case",
+         "result": "Passed"
+        }
+       ],
+       "name": "Tagged",
+       "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/Tagged",
+       "nodeType": "Test Suite",
+       "result": "Passed"
+      },
+      {
+       "children": [
+        {
+         "duration": "0,01s",
+         "durationInSeconds": 0.01,
+         "name": "enum sentence",
+         "nodeIdentifier": "EnumRulesTests/enumCase()",
+         "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/EnumRulesTests/enumCase()",
+         "nodeType": "Test Case",
+         "result": "Passed"
+        }
+       ],
+       "name": "Enum rules",
+       "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/Enum rules",
+       "nodeType": "Test Suite",
+       "result": "Passed"
+      },
+      {
+       "children": [
+        {
+         "duration": "0,01s",
+         "durationInSeconds": 0.01,
+         "name": "actor sentence",
+         "nodeIdentifier": "ActorRulesTests/actorCase()",
+         "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/ActorRulesTests/actorCase()",
+         "nodeType": "Test Case",
+         "result": "Passed"
+        }
+       ],
+       "name": "Actor rules",
+       "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/Actor rules",
+       "nodeType": "Test Suite",
+       "result": "Passed"
+      },
+      {
+       "children": [
+        {
+         "duration": "0,01s",
+         "durationInSeconds": 0.01,
+         "name": "loads",
+         "nodeIdentifier": "SuiteATests/loads()",
+         "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/SuiteATests/loads()",
+         "nodeType": "Test Case",
+         "result": "Passed"
+        }
+       ],
+       "name": "SuiteA",
+       "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/SuiteA",
+       "nodeType": "Test Suite",
+       "result": "Passed"
+      },
+      {
+       "children": [
+        {
+         "duration": "0,01s",
+         "durationInSeconds": 0.01,
+         "name": "loads",
+         "nodeIdentifier": "SuiteBTests/loads()",
+         "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/SuiteBTests/loads()",
+         "nodeType": "Test Case",
+         "result": "Passed"
+        }
+       ],
+       "name": "SuiteB",
+       "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/SuiteB",
+       "nodeType": "Test Suite",
+       "result": "Passed"
+      },
+      {
+       "children": [
+        {
+         "duration": "0,01s",
+         "durationInSeconds": 0.01,
+         "name": "loads",
+         "nodeIdentifier": "RightSuiteTests/loads()",
+         "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/RightSuiteTests/loads()",
+         "nodeType": "Test Case",
+         "result": "Passed"
+        }
+       ],
+       "name": "RightSuite",
+       "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/RightSuite",
+       "nodeType": "Test Suite",
+       "result": "Passed"
+      }
+     ],
+     "name": "DemoTests",
+     "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests",
+     "nodeType": "Unit test bundle",
+     "result": "Passed"
+    }
+   ],
+   "name": "Demo",
+   "nodeType": "Test Plan",
+   "result": "Passed"
+  }
+ ],
+ "testPlanConfigurations": []
+}

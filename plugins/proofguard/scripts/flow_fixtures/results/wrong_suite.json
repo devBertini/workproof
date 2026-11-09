@@ -1,0 +1,55 @@
+{
+ "devices": [],
+ "testNodes": [
+  {
+   "children": [
+    {
+     "children": [
+      {
+       "children": [
+        {
+         "duration": "0,01s",
+         "durationInSeconds": 0.01,
+         "name": "loads",
+         "nodeIdentifier": "RightSuiteTests/loads()",
+         "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/RightSuiteTests/loads()",
+         "nodeType": "Test Case",
+         "result": "Passed"
+        }
+       ],
+       "name": "RightSuite",
+       "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/RightSuite",
+       "nodeType": "Test Suite",
+       "result": "Passed"
+      },
+      {
+       "children": [
+        {
+         "duration": "0,01s",
+         "durationInSeconds": 0.01,
+         "name": "loads()",
+         "nodeIdentifier": "PricingTests/loads()",
+         "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/PricingTests/loads()",
+         "nodeType": "Test Case",
+         "result": "Passed"
+        }
+       ],
+       "name": "Pricing rules",
+       "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests/Pricing rules",
+       "nodeType": "Test Suite",
+       "result": "Passed"
+      }
+     ],
+     "name": "DemoTests",
+     "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoTests",
+     "nodeType": "Unit test bundle",
+     "result": "Passed"
+    }
+   ],
+   "name": "Demo",
+   "nodeType": "Test Plan",
+   "result": "Passed"
+  }
+ ],
+ "testPlanConfigurations": []
+}

@@ -1,0 +1,38 @@
+{
+ "devices": [],
+ "testNodes": [
+  {
+   "children": [
+    {
+     "children": [
+      {
+       "children": [
+        {
+         "duration": "0,01s",
+         "durationInSeconds": 0.01,
+         "name": "testLayout()",
+         "nodeIdentifier": "IPadLayoutUITests/testLayout()",
+         "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoUITests/IPadLayoutUITests/testLayout()",
+         "nodeType": "Test Case",
+         "result": "Passed"
+        }
+       ],
+       "name": "IPadLayoutUITests",
+       "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoUITests/IPadLayoutUITests",
+       "nodeType": "Test Suite",
+       "result": "Passed"
+      }
+     ],
+     "name": "DemoUITests",
+     "nodeIdentifierURL": "test://com.apple.xcode/Demo/DemoUITests",
+     "nodeType": "UI test bundle",
+     "result": "Passed"
+    }
+   ],
+   "name": "Demo",
+   "nodeType": "Test Plan",
+   "result": "Passed"
+  }
+ ],
+ "testPlanConfigurations": []
+}

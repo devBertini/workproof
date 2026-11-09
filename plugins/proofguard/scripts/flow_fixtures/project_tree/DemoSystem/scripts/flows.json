@@ -1,0 +1,89 @@
+{
+  "project": "DemoSystem",
+  "platform": "docker",
+  "runners": [
+    {
+      "name": "api",
+      "framework": "vitest",
+      "command": [
+        "docker",
+        "compose",
+        "--profile",
+        "test",
+        "run",
+        "--rm",
+        "api-test"
+      ],
+      "junit_dir": "test-results/api",
+      "tests": [
+        {
+          "dir": "apps/api/test/unit",
+          "patterns": [
+            "*.spec.ts"
+          ]
+        },
+        {
+          "dir": "apps/api/test/integration",
+          "patterns": [
+            "*.int.spec.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "web",
+      "framework": "vitest",
+      "command": [
+        "docker",
+        "compose",
+        "--profile",
+        "test",
+        "run",
+        "--rm",
+        "web-test"
+      ],
+      "junit_dir": "test-results/web",
+      "tests": [
+        {
+          "dir": "apps/web/test",
+          "patterns": [
+            "*.unit.ts",
+            "*.unit.tsx"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "e2e",
+      "framework": "playwright",
+      "ui": true,
+      "command": [
+        "docker",
+        "compose",
+        "--profile",
+        "test",
+        "run",
+        "--rm",
+        "e2e"
+      ],
+      "junit_dir": "test-results/e2e",
+      "tests": [
+        {
+          "dir": "apps/e2e/tests",
+          "patterns": [
+            "*.e2e.ts"
+          ]
+        }
+      ]
+    }
+  ],
+  "sources": [
+    "apps",
+    "packages"
+  ],
+  "source_patterns": [
+    "*.ts",
+    "*.tsx",
+    "*.json"
+  ]
+}

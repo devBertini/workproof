@@ -1,0 +1,47 @@
+{
+ "devices": [],
+ "testNodes": [
+  {
+   "children": [
+    {
+     "children": [
+      {
+       "children": [
+        {
+         "duration": "0,01s",
+         "durationInSeconds": 0.01,
+         "name": "cost doubles per level",
+         "nodeIdentifier": "EconomyTests/costDoubles()",
+         "nodeIdentifierURL": "test://com.apple.xcode/Demo/PhysicsTests/EconomyTests/costDoubles()",
+         "nodeType": "Test Case",
+         "result": "Passed"
+        },
+        {
+         "duration": "0,01s",
+         "durationInSeconds": 0.01,
+         "name": "testCost()",
+         "nodeIdentifier": "EconomyTests/testCost()",
+         "nodeIdentifierURL": "test://com.apple.xcode/Demo/PhysicsTests/EconomyTests/testCost()",
+         "nodeType": "Test Case",
+         "result": "Passed"
+        }
+       ],
+       "name": "Economy",
+       "nodeIdentifierURL": "test://com.apple.xcode/Demo/PhysicsTests/Economy",
+       "nodeType": "Test Suite",
+       "result": "Passed"
+      }
+     ],
+     "name": "PhysicsTests",
+     "nodeIdentifierURL": "test://com.apple.xcode/Demo/PhysicsTests",
+     "nodeType": "Unit test bundle",
+     "result": "Passed"
+    }
+   ],
+   "name": "Demo",
+   "nodeType": "Test Plan",
+   "result": "Passed"
+  }
+ ],
+ "testPlanConfigurations": []
+}

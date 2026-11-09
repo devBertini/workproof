@@ -1,0 +1,19 @@
+<testsuites id="" name="" tests="4" failures="1" skipped="1" errors="0" time="3.2">
+<testsuite name="providers.e2e.ts" timestamp="2026-10-08T12:00:00.000Z" hostname="chromium" tests="3" failures="1" skipped="1" time="2.1" errors="0">
+<testcase name="providers › creates a provider" classname="providers.e2e.ts" time="1.2">
+</testcase>
+<testcase name="providers › syncs the catalog" classname="providers.e2e.ts" time="0.9">
+<failure message="providers.e2e.ts:9:3 syncs the catalog" type="FAILURE">
+<![CDATA[  1) providers.e2e.ts:9:3 › providers › syncs the catalog
+     Error: expect(received).toBe(expected)]]>
+</failure>
+</testcase>
+<testcase name="providers › keeps a note" classname="providers.e2e.ts" time="0">
+<skipped/>
+</testcase>
+</testsuite>
+<testsuite name="auth/login.e2e.ts" timestamp="2026-10-08T12:00:00.000Z" hostname="chromium" tests="1" failures="0" skipped="0" time="1.1" errors="0">
+<testcase name="signs in" classname="auth/login.e2e.ts" time="1.1">
+</testcase>
+</testsuite>
+</testsuites>

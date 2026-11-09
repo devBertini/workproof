@@ -1,0 +1,33 @@
+{
+  "project": "Demo",
+  "platform": "ios",
+  "device_kind": "phone",
+  "devices": {
+    "phone": "Demo-iPhone-abc123",
+    "ipad": "Demo-iPad-abc123"
+  },
+  "device_classes": {
+    "IPadLayoutUITests": "ipad"
+  },
+  "unit_targets": [
+    {
+      "name": "DemoTests",
+      "dir": "DemoTests"
+    }
+  ],
+  "ui_targets": [
+    {
+      "name": "DemoUITests",
+      "dir": "DemoUITests"
+    }
+  ],
+  "sources": [
+    "Demo",
+    "DemoTests",
+    "DemoUITests"
+  ],
+  "source_patterns": [
+    "*.swift",
+    "*.xcstrings"
+  ]
+}

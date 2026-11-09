@@ -1,0 +1,301 @@
+{
+ "flows": {
+  "F-BARE-01": {
+   "note": "",
+   "proofs": [
+    "tag sentence"
+   ],
+   "run_id": "20260110T090000-only-stale",
+   "source_fingerprint": "a20de34eb4e4a3b0e9cde62ef4cc6673901ecde7",
+   "source_missing": [],
+   "status": "validado",
+   "validated_at": "2026-01-10"
+  },
+  "F-CAT-01": {
+   "note": "",
+   "proofs": [
+    "Enum rules/enum sentence"
+   ],
+   "run_id": "20260110T090000-only-stale",
+   "source_fingerprint": "1e3bd5333e418580338e232419fe958af1be678a",
+   "source_missing": [],
+   "status": "validado",
+   "validated_at": "2026-01-10"
+  },
+  "F-DEV-03": {
+   "note": "",
+   "proofs": [
+    "device:real camera capture of a receipt"
+   ],
+   "source_missing": [],
+   "status": "só em aparelho"
+  },
+  "F-GONE-01": {
+   "note": "file not found: Gone.swift",
+   "proofs": [
+    "Actor rules/actor sentence"
+   ],
+   "run_id": "20260110T090000-only-stale",
+   "source_fingerprint": "0000000000000000000000000000000000000000",
+   "source_missing": [
+    "Gone.swift"
+   ],
+   "status": "revalidar",
+   "validated_at": "2026-01-10"
+  },
+  "F-HOME-01": {
+   "note": "",
+   "proofs": [
+    "HomeUITests/testOpensDetail()"
+   ],
+   "run_id": "20260110T090000-only-stale",
+   "source_fingerprint": "0000000000000000000000000000000000000000",
+   "source_missing": [],
+   "status": "revalidar",
+   "validated_at": "2026-01-10"
+  },
+  "F-MAN-01": {
+   "note": "",
+   "proofs": [
+    "manual:2026-02-15:tester"
+   ],
+   "run_id": "no-run",
+   "source_fingerprint": "a20de34eb4e4a3b0e9cde62ef4cc6673901ecde7",
+   "source_missing": [],
+   "status": "validado",
+   "validated_at": "2026-02-15"
+  },
+  "F-MIX-01": {
+   "note": "",
+   "proofs": [
+    "RulesTests/testA()",
+    "HomeUITests/testSaves()"
+   ],
+   "run_id": "20260110T090000-only-stale",
+   "source_fingerprint": "0000000000000000000000000000000000000000",
+   "source_missing": [],
+   "status": "revalidar",
+   "validated_at": "2026-01-10"
+  },
+  "F-NOENT-01": {
+   "note": "",
+   "proofs": [
+    "RulesTests/testB()"
+   ],
+   "run_id": "20260110T090000-only-stale",
+   "source_missing": [],
+   "status": "validado",
+   "validated_at": "2026-01-10"
+  },
+  "F-OLD-09": {
+   "note": "",
+   "proofs": [
+    "OldTests/testGone()"
+   ],
+   "run_id": "20251201T090000-full",
+   "source_fingerprint": "ffffffffffffffffffffffffffffffffffffffff",
+   "source_missing": [],
+   "status": "validado",
+   "validated_at": "2025-12-01"
+  },
+  "F-PRICE-01": {
+   "note": "",
+   "proofs": [
+    "Pricing rules/rounds half up"
+   ],
+   "run_id": "20260110T090000-only-stale",
+   "source_fingerprint": "a20de34eb4e4a3b0e9cde62ef4cc6673901ecde7",
+   "source_missing": [],
+   "status": "validado",
+   "validated_at": "2026-01-10"
+  },
+  "F-PRINT-01": {
+   "note": "",
+   "proofs": [
+    "print:docs/prints/home.png"
+   ],
+   "run_id": "no-run",
+   "source_fingerprint": "1ff297344bc60c65e135b98884521b7dc36b2cb3",
+   "source_missing": [],
+   "status": "validado",
+   "validated_at": "2026-02-01"
+  },
+  "F-RULE-01": {
+   "note": "",
+   "proofs": [
+    "RulesTests/testA()",
+    "RulesTests/testB()"
+   ],
+   "run_id": "20260110T090000-only-stale",
+   "source_fingerprint": "a20de34eb4e4a3b0e9cde62ef4cc6673901ecde7",
+   "source_missing": [],
+   "status": "validado",
+   "validated_at": "2026-01-10"
+  },
+  "F-TYPED-01": {
+   "note": "",
+   "proofs": [
+    "Pricing rules/loads()"
+   ],
+   "run_id": "20260115T090000-only-stale",
+   "source_fingerprint": "0000000000000000000000000000000000000000",
+   "source_missing": [],
+   "status": "revalidar",
+   "validated_at": "2026-01-15"
+  }
+ },
+ "raw": {
+  "by_name": {
+   "actor sentence": {
+    "identifier": "ActorRulesTests/actorCase()",
+    "result": "Passed",
+    "run_id": "20260110T090000-only-stale",
+    "when": "2026-01-10"
+   },
+   "enum sentence": {
+    "identifier": "EnumRulesTests/enumCase()",
+    "result": "Passed",
+    "run_id": "20260110T090000-only-stale",
+    "when": "2026-01-10"
+   },
+   "loads()": {
+    "result": "Passed",
+    "run_id": "20260101T090000-only-stale",
+    "when": "2026-01-01"
+   },
+   "rounds half up": {
+    "identifier": "PricingTests/roundsHalfUp()",
+    "result": "Passed",
+    "run_id": "20260110T090000-only-stale",
+    "when": "2026-01-10"
+   },
+   "tag sentence": {
+    "identifier": "TaggedTests/tagCase()",
+    "result": "Passed",
+    "run_id": "20260110T090000-only-stale",
+    "when": "2026-01-10"
+   },
+   "testA()": {
+    "identifier": "RulesTests/testA()",
+    "result": "Passed",
+    "run_id": "20260110T090000-only-stale",
+    "when": "2026-01-10"
+   },
+   "testB()": {
+    "identifier": "RulesTests/testB()",
+    "result": "Passed",
+    "run_id": "20260110T090000-only-stale",
+    "when": "2026-01-10"
+   },
+   "testOpensDetail()": {
+    "identifier": "HomeUITests/testOpensDetail()",
+    "result": "Passed",
+    "run_id": "20260101T090000-only-stale",
+    "when": "2026-01-01"
+   },
+   "testRemoved()": {
+    "identifier": "RulesTests/testRemoved()",
+    "result": "Passed",
+    "run_id": "20260101T090000-only-stale",
+    "when": "2026-01-01"
+   },
+   "testSaves()": {
+    "identifier": "HomeUITests/testSaves()",
+    "result": "Passed",
+    "run_id": "20260101T090000-only-stale",
+    "when": "2026-01-01"
+   }
+  },
+  "by_path": {
+   "Actor rules/actor sentence": {
+    "identifier": "ActorRulesTests/actorCase()",
+    "result": "Passed",
+    "run_id": "20260110T090000-only-stale",
+    "when": "2026-01-10"
+   },
+   "Enum rules/enum sentence": {
+    "identifier": "EnumRulesTests/enumCase()",
+    "result": "Passed",
+    "run_id": "20260110T090000-only-stale",
+    "when": "2026-01-10"
+   },
+   "HomeUITests/testOpensDetail()": {
+    "identifier": "HomeUITests/testOpensDetail()",
+    "result": "Passed",
+    "run_id": "20260101T090000-only-stale",
+    "when": "2026-01-01"
+   },
+   "HomeUITests/testSaves()": {
+    "identifier": "HomeUITests/testSaves()",
+    "result": "Passed",
+    "run_id": "20260101T090000-only-stale",
+    "when": "2026-01-01"
+   },
+   "Pricing rules/loads()": {
+    "result": "Passed",
+    "run_id": "20260101T090000-only-stale",
+    "when": "2026-01-01"
+   },
+   "Pricing rules/rounds half up": {
+    "identifier": "PricingTests/roundsHalfUp()",
+    "result": "Passed",
+    "run_id": "20260110T090000-only-stale",
+    "when": "2026-01-10"
+   },
+   "RulesTests/testA()": {
+    "identifier": "RulesTests/testA()",
+    "result": "Passed",
+    "run_id": "20260110T090000-only-stale",
+    "when": "2026-01-10"
+   },
+   "RulesTests/testB()": {
+    "identifier": "RulesTests/testB()",
+    "result": "Passed",
+    "run_id": "20260110T090000-only-stale",
+    "when": "2026-01-10"
+   },
+   "RulesTests/testRemoved()": {
+    "identifier": "RulesTests/testRemoved()",
+    "result": "Passed",
+    "run_id": "20260101T090000-only-stale",
+    "when": "2026-01-01"
+   },
+   "Tagged/tag sentence": {
+    "identifier": "TaggedTests/tagCase()",
+    "result": "Passed",
+    "run_id": "20260110T090000-only-stale",
+    "when": "2026-01-10"
+   }
+  },
+  "runnable": {
+   "Actor rules/actor sentence": "DemoTests/ActorRulesTests",
+   "Enum rules/enum sentence": "DemoTests/EnumRulesTests",
+   "HomeUITests/testOpensDetail()": "DemoUITests/HomeUITests",
+   "HomeUITests/testSaves()": "DemoUITests/HomeUITests",
+   "Pricing rules/loads()": "DemoTests/PricingTests",
+   "Pricing rules/rounds half up": "DemoTests/PricingTests",
+   "RulesTests/testA()": "DemoTests/RulesTests",
+   "RulesTests/testB()": "DemoTests/RulesTests",
+   "RulesTests/testRemoved()": "DemoTests/RulesTests",
+   "Tagged/tag sentence": "DemoTests/TaggedTests"
+  }
+ },
+ "run": {
+  "cases_by_class": {},
+  "classes_done": [
+   "DemoTests/RulesTests"
+  ],
+  "classes_planned": [
+   "DemoTests/RulesTests"
+  ],
+  "completed": true,
+  "include_ui": true,
+  "mode": "only-stale",
+  "run_id": "20260110T090000-only-stale",
+  "scope_ids": [
+   "F-RULE-01"
+  ],
+  "started_at": "2026-01-10T09:00:00"
+ },
+ "version": 2
+}

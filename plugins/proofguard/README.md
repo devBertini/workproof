@@ -8,6 +8,7 @@ Guardrails for Claude Code that enforce instead of advise. One plugin, several m
 | Proof plans | Keeps one plan per project; a stage closes on a named command that passes (a written proof is shown as unverified), and the plan is printed back at every session start. Optionally compacts the conversation when a stage closes. |
 | Agent roles | Five agents by activity (implementer, reviewer, debugger, designer, runner) on a fitting model each; a call that asks one for a bigger model asks you first. |
 | Commit rules | Optional rules for `guarded-commit`: one Conventional Commit line, a file size cap, new files that must not be committed. |
+| Flow map | Keeps `docs/FLOWS.md` true: every user flow names its proof, and only the `check-flows` engine writes a flow's status from the tests and screenshots it cites. |
 | Long runs | Runs builds and suites over a minute in the background and wakes Claude once when they end or fail, instead of polling. |
 | Skills | Closing a delivery, keeping CLAUDE.md files and rules right, Docker Compose systems, Rust test loops, button layout. |
 
@@ -32,6 +33,7 @@ Requires Python 3.10 or later on PATH (`python3`, `python` or `py -3`). On Windo
 | `compact_on_stage_close` | off | Compact the conversation at the end of a turn that closed a stage, once the plan's repository is committed. |
 | `agent_roles` | on | The agents' model check and the delegating skill. |
 | `refuse_inheriting_agents` | off | Refuse `general-purpose`, `fork`, `Plan` and `Explore` agents unless the call names `haiku` or `sonnet`. |
+| `flow_map` | on | The mapping-flows and developing-versions skills. |
 | `long_runs` | on | The `watch_run` tool and the running-long-commands skill. |
 | `delivery` | on | The closing-deliveries and maintaining-rules skills. |
 | `docker` | on | The Docker Compose skill. |
@@ -39,7 +41,7 @@ Requires Python 3.10 or later on PATH (`python3`, `python` or `py -3`). On Windo
 | `ui_conventions` | on | The button layout skill. |
 | `buttons_positive_trailing_everywhere` | off | Confirming buttons on the trailing side on Windows too. |
 
-A skill cannot be unloaded by a plugin option: a switched-off module's skill tells Claude to ignore it. Claude Code asks for the options when the plugin is enabled and shows them in `/config`. The command line tools (`work-plan`, `verify-run`, `guarded-commit`, `watch-log`) stay available whichever modules are on.
+A skill cannot be unloaded by a plugin option: a switched-off module's skill tells Claude to ignore it. Claude Code asks for the options when the plugin is enabled and shows them in `/config`. The command line tools (`work-plan`, `verify-run`, `guarded-commit`, `watch-log`, `check-flows`) stay available whichever modules are on.
 
 ## Secret guard
 
@@ -224,6 +226,14 @@ Each rule is off until an environment variable turns it on (put them in the `env
 | `runner` | haiku | mechanical work with a checkable result |
 
 A PreToolUse hook on the Agent tool asks you before a call runs one of them on a model above its default. With `refuse_inheriting_agents` on it also refuses agents that would run on the session's model. The skill `delegating-to-agents` says when to delegate at all and how to write the brief.
+
+## Flow map
+
+`check-flows` keeps a project's `docs/FLOWS.md` true. Each flow names its proof: an automated test, a committed screenshot, a dated manual check, or a `device:` reason. Only the engine writes `validated`, `revalidate`, `no proof`, `device only` or `broken`, and a change to a cited source demotes a flow to `revalidate`.
+
+- Modes: `--only-stale`, `--from-cache`, `--reuse`, `--changed`, `--resume`, `--check`, `--prune-state`, `--init`. Exit codes: 0 clean, 1 a broken flow or a difference, 2 unusable input.
+- Configuration lives in the project's `scripts/flows.json` (skill `mapping-flows`). Maps in Brazilian Portuguese (`docs/FLUXOS.md`) work unchanged, and `check-flows --init --language pt-BR` starts one.
+- The skill `developing-versions` runs a product version in thin slices on top of the map.
 
 ## Long runs
 
