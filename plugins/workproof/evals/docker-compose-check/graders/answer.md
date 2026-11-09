@@ -1,6 +1,6 @@
 ---
 type: regex
-pattern: "docker compose config[^\n]*--no-interpolate"
+pattern: 'docker compose[^\n]*config[^\n]*(--no-interpolate|--quiet| -q\b)'
 ---
 
-The command keeps interpolated secrets out of the output.
+The command checks the files without printing interpolated secrets (--no-interpolate, or --quiet / -q, which print nothing).

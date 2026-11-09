@@ -1,6 +1,6 @@
 ---
 name: working-in-stages
-description: Runs work that takes more than one step from the project's plan file (docs/ACTIVE-PLAN.json, changed only with the `work-plan` command) - stages with a done-when that names their proof, notes written as you learn, one stage at a time, each closed on a named command that passes. Use before starting multi-step work, and when a new session, a compaction or /clear prints an active plan.
+description: Runs work that takes more than one step from the project's plan file (docs/ACTIVE-PLAN.json, changed only with the `work-plan` command) - stages with a done-when that names their proof, notes written as you learn, one stage at a time, each closed on a named command that passes. Use before starting multi-step work, when adding or changing a stage or its done-when, and when a new session, a compaction or /clear prints an active plan.
 ---
 
 # Working in stages

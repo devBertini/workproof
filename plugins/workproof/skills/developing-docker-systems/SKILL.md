@@ -1,6 +1,6 @@
 ---
 name: developing-docker-systems
-description: Builds, tests and runs a Docker Compose system - proves a change in a throwaway Compose project with a test profile, runs parallel lanes in worktrees under their own project names, brings the system's own stack up without clashing, builds lean images, and keeps secrets out of every output. Use when building, changing, testing or running a system defined by Dockerfiles and Compose files.
+description: Builds, tests and runs a Docker Compose system - proves a change in a throwaway Compose project with a test profile, runs parallel lanes in worktrees under their own project names, brings the system's own stack up without clashing, builds lean images, and keeps secrets out of every output. Use when building, changing, testing, validating or running a system defined by Dockerfiles and Compose files, or inspecting its containers and compose configuration.
 ---
 
 # Developing Docker systems

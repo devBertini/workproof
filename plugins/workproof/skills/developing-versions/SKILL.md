@@ -1,6 +1,6 @@
 ---
 name: developing-versions
-description: Runs a version of any product (app, game, service, site) from spec to release in thin slices - a short spec and a round with the product's decision maker, the foundation, one slice per stage (contract, core, screens, proof, close), reviews only where they pay, time budgets for test loops, triage of failures and notes, and a hardening pass sized to the version. Use when a product or version starts, a slice is planned, built or closed, notes arrive mid-version, a test loop is slow, or before declaring a version finished.
+description: Runs a version of any product (app, game, service, site) from spec to release in thin slices - a short spec and a round with the product's decision maker, the foundation, one slice per stage (contract, core, screens, proof, close), reviews only where they pay, time budgets for test loops, triage of failures and notes, and a hardening pass sized to the version. Use when a product or version starts or is planned, a slice is planned, built or closed, notes arrive mid-version, a test loop is slow, or before declaring a version finished.
 ---
 
 If `${user_config.flow_map}` is false, this module is off: ignore this skill.

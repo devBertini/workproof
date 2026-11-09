@@ -5,4 +5,4 @@ max_turns: 6
 allowed_tools: [Read, Glob, Grep, Skill]
 ---
 
-How do I quickly check that my docker compose files are valid, without starting anything? Give me the one command.
+Check that my docker compose files are valid without starting anything. Commands are off in this session, so give the one exact command you will run.

@@ -1,6 +1,6 @@
 ---
 name: running-long-commands
-description: Runs a command that takes over a minute without spending wakes: a background shell command that writes its own log and ends it with its exit code, plus the deferred watch_run tool, which wakes the session at most once more (first fatal line, a hang, a missing log). Use when starting a build, test suite, benchmark, conversion or any other run expected to pass a minute.
+description: Runs a command that takes over a minute without spending wakes: a background shell command that writes its own log and ends it with its exit code, plus the deferred watch_run tool, which wakes the session at most once more (first fatal line, a hang, a missing log). Use when starting or planning a build, test suite, benchmark, conversion or any other run expected to pass a minute.
 ---
 
 If `${user_config.long_runs}` is false, this module is off: ignore this skill.

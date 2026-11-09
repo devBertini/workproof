@@ -12,12 +12,15 @@ The workproof secret guard hook inspects every Bash and PowerShell command befor
 - A command that is handed the name of a credential file: `.env` and `.env.*` (not `.env.example`, `.env.sample`, `.env.template`), private keys (`id_rsa` and its siblings, `*.pem`, `*.key`, `*.p12`, `*.pfx`, `*.p8`), keystores, cloud and tool credential files (`~/.aws/credentials`, `~/.docker/config.json`, `~/.kube/config`, `.npmrc`, `.pypirc`, `.netrc`, `.git-credentials`, and similar), service-account and OAuth client files, and any pattern the user added in the plugin options.
 - Interpreter code that names such a file: `python -c "open('.env')"`, a heredoc fed to `python` or `node`, `bash -c '...'`, `powershell -Command '...'`, `cmd /c '...'`, also behind `docker exec` or `sudo`.
 - A listed name piped into a reader: `find . -name .env | xargs cat`.
+- A command `ssh` runs on a remote host, judged like a local one: `ssh host "cat /srv/app/.env"`.
 - Printing the environment: bare `env`, `printenv`, `export -p` or `set`, `Get-ChildItem env:`, `/proc/*/environ`, and printing a variable whose name says it is secret (`echo $API_TOKEN`, `$env:GITHUB_TOKEN`).
 - Docker commands that print secrets: `docker compose config` without `--no-interpolate` or with `--environment`, `docker inspect` or `docker service inspect` without a `--format` that leaves out the environment (`--format json` prints everything), and `env`, `printenv`, `/proc/*/environ` or `cat /run/secrets/...` run inside a container.
 
 ## What stays allowed
 
 Listing, testing, hashing or counting a file (`ls`, `test -f`, `stat`, `wc -l`, `sha256sum`, `git check-ignore`, `git status`), creating, writing or removing it (`touch`, `rm`, `> .env`, `cat > .env <<'EOF'`, `cp .env.example .env`), handing it to the tool that uses it (`docker compose --env-file .env up`, `node --env-file=.env`, `ssh -i ~/.ssh/id_ed25519`), searching for its name (`grep -n .env .gitignore`), naming it in a commit message, `git rm --cached`, using a secret variable without printing it (`curl -H "Authorization: Bearer $API_TOKEN"`), and every command that does not name a secret file.
+
+Searching inside a secret file is reading it and is blocked, even a count or a quiet match (`grep -c '^DATABASE_URL=' .env`, `grep -q`, `Select-String`): do not plan such a check. To learn whether a key is set, run the program that loads the file and read its own startup or connection error, or ask the user.
 
 ## How to proceed
 

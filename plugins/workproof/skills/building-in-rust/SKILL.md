@@ -1,6 +1,6 @@
 ---
 name: building-in-rust
-description: Builds and tests a Rust workspace with a short unit loop - the test command and how to read a run by its own exit code, profiles that keep tests fast, optimized builds for runs that compute, and the traps of replacing a running program. Use when building, testing or profiling a Rust project.
+description: Builds and tests a Rust workspace with a short unit loop - the test command and how to read a run by its own exit code, profiles that keep tests fast, optimized builds for runs that compute, and the traps of replacing a running program. Use when building, testing or profiling a Rust project, or setting up its edit-test loop or Cargo profiles.
 ---
 
 # Building in Rust
