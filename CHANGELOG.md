@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1
+
+- The README says what the session-start hook reads and that it changes nothing in Claude Code's settings, permissions, memory or instructions.
+- `.gitattributes` keeps the launcher, scripts and `bin/` wrappers byte for byte as committed (`-text`) instead of converting line endings on checkout.
+
 ## 1.0.0
 
 First public release.

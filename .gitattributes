@@ -1,4 +1,7 @@
-*.cmd text eol=lf
-*.sh text eol=lf
-*.py text eol=lf
-plugins/*/bin/* text eol=lf
+# -text: no line-ending conversion on checkout, so these files keep the LF
+# they were committed with (the sh half of the launcher and the bin/ wrappers
+# need it) without an attribute that rewrites contents.
+*.cmd -text
+*.sh -text
+*.py -text
+plugins/*/bin/* -text

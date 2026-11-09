@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Guardrails for Claude Code that enforce instead of advise.",
-    "version": "1.0.0"
+    "version": "1.0.1"
   },
   "plugins": [
     {
