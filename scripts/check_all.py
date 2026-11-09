@@ -259,8 +259,11 @@ def gate(root, require_claude=False, out=sys.stdout):
             print(f"{'ok  ' if code == 0 else 'FAIL'}  {label} ({seconds:.1f} s)", file=out, flush=True)
             if code != 0:
                 failed.append(label)
-                for line in text.strip().splitlines()[-25:]:
+                tail = text.strip().splitlines()[-25:]
+                for line in tail:
                     print(f"        {line}", file=out, flush=True)
+                if os.environ.get("GITHUB_ACTIONS"):  # an annotation, readable without opening the job's log
+                    print(f"::error title={label}::" + "%0A".join(line.strip() for line in tail[-12:]), file=out, flush=True)
     for notice in notices:
         print(f"note  {notice}", file=out, flush=True)
     print(f"check_all: {'FAILED: ' + ', '.join(failed) if failed else 'all passed'}", file=out, flush=True)
