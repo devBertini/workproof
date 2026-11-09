@@ -19,6 +19,6 @@ Everything a user needs is in [plugins/workproof](plugins/workproof): what each 
 
 ## Development
 
-`python -B scripts/check_all.py` is the one gate: every Python suite under `tests/` and `scripts/`, `claude plugin test`, `claude plugin validate --strict`, a leak check and static checks of the package. It needs Python 3.10 or later and, for the plugin checks, the `claude` command. `tools/` holds development tools that are not part of the plugin.
+`python -B scripts/check_all.py` is the one gate: every Python suite under `tests/` and `scripts/`, `claude plugin test`, `claude plugin validate --strict`, a leak check and static checks of the package. It needs Python 3.9 or later and, for the plugin checks, the `claude` command. `tools/` holds development tools that are not part of the plugin.
 
 License: MIT.
