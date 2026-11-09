@@ -149,8 +149,7 @@ export const register: Register = (on, options) => {
       if (!(await compactionOn($, options.compact_on_stage_close))) return ran
       const stdout = (ran.result as { stdout?: unknown } | undefined)?.stdout
       if (typeof stdout !== 'string') return ran
-      // PROOF_PLANS_ROOT is the variable's name from before the plugin was renamed: still read.
-      const root = rootOf(options.plans_root, (await $.env.get('WORKPROOF_PLANS_ROOT')) || (await $.env.get('PROOF_PLANS_ROOT')))
+      const root = rootOf(options.plans_root, await $.env.get('WORKPROOF_PLANS_ROOT'))
       let found = closedBy(e.command, stdout, root)
       if (found === undefined && !LABEL.test(stdout) && root !== '') {
         const pointer = await $.fs.read(`${root}/.claude/plan-sessions/${await $.session.id()}`).catch(() => undefined)

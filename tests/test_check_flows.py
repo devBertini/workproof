@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Tests of the flow-map engine, `check_flows.py` beside this file.
 
-Run: `python -B test_check_flows.py` from this folder (Python 3.10, standard library only).
+Run: `python -B test_check_flows.py` from this folder (Python 3.9, standard library only).
 No simulator, no xcodebuild and no network: every subprocess, the clock and git go through one runtime object that
 these tests replace with `FakeRuntime`. The fixtures are in `flow_fixtures/` (`regenerate_fixtures.py` writes them).
 

@@ -27,6 +27,9 @@ BLOCKED = [
     ("Grep", {"pattern": "KEY", "path": "/work/app", "glob": ".env*"}),
     ("Grep", {"pattern": "KEY", "glob": "**/.env"}),
     ("Grep", {"pattern": "BEGIN", "glob": "**/*.pem"}),
+    ("Grep", {"pattern": "K", "glob": "**/.env*"}),
+    ("Grep", {"pattern": "K", "glob": "*/config/.env.*"}),
+    ("Grep", {"pattern": "K", "glob": "**/id_rsa*"}),
     ("Grep", {"pattern": "BEGIN", "glob": "*.{pem,key}"}),
     ("Grep", {"pattern": "x", "glob": "config/.env.*", "output_mode": "count"}),
 ]
@@ -43,6 +46,7 @@ ALLOWED = [
     ("Grep", {"pattern": "id_rsa", "glob": "*.md"}),
     ("Grep", {"pattern": "process.env", "glob": "**/*.{ts,tsx}"}),
     ("Grep", {"pattern": "x", "glob": "*.json"}),
+    ("Grep", {"pattern": "x", "glob": "**/environment*.md"}),
     ("Grep", {"pattern": "x"}),
     ("Write", {"file_path": "/work/app/.env", "content": "A=1"}),
     ("Glob", {"pattern": "**/.env*"}),

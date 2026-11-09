@@ -10,7 +10,7 @@ NUL bytes, which is what Windows PowerShell 5.1 writes) is decoded before the sc
 byte in the first 8 KiB that is not UTF-16/UTF-32 text) is skipped, with a note on stderr. stdout: one
 `file:line: kind` line per FAIL finding; the matched value is never printed. stderr: notes and WARN findings.
 Exit 0 clean, 1 a FAIL finding, 2 the check itself could not run (a refusal, never a pass).
-Python 3.10+, standard library only.
+Python 3.9+, standard library only.
 """
 import bisect
 import codecs

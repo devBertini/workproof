@@ -11,7 +11,7 @@ Standard library.
 import os
 import sys
 
-MINIMUM = (3, 10)
+MINIMUM = (3, 9)
 OFF = {"false", "0", "no", "off"}
 
 

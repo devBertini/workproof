@@ -5,7 +5,7 @@ SECRET_CONTENT lists token formats that their vendors publish; the matched value
 Users add file names through the `extra_secret_names` plugin option or the WORKPROOF_EXTRA_SECRET_NAMES environment
 variable (glob patterns; both apply), read by `extra_names_from_env`.
 
-Python 3.10+, standard library only.
+Python 3.9+, standard library only.
 """
 import json
 import os

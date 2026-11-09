@@ -16,7 +16,7 @@ programs, such as an interpreter that opens the file itself. This hook covers th
 not a sandbox: a command built to hide a file name gets past it.
 
 Input: the hook JSON on stdin. Exit 0 lets the command run; exit 2 blocks it, with the reason on stderr for Claude.
-Python 3.10+, standard library only.
+Python 3.9+, standard library only.
 """
 import json
 import os
@@ -42,6 +42,7 @@ MOVERS = {"mv", "move-item", "mi", "move", "ren", "rename-item"}
 GREPS = {"grep", "egrep", "fgrep", "rg"}
 GREP_VALUED = {"-A", "-B", "-C", "-m", "--max-count", "-g", "--glob", "-t", "--type"}
 KEY_USERS = {"ssh", "scp", "sftp"}
+GIT_WRITES = {"rm", "restore", "checkout"}   # they remove the file or put the committed copy back; none prints it
 GIT_NAME_ONLY = {"check-ignore", "status", "ls-files"}
 FIND_RUNS = {"-exec", "-execdir", "-ok", "-okdir", "-delete", "-fprint", "-fprintf", "-fls"}
 SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "powershell", "pwsh", "cmd"}
@@ -57,9 +58,9 @@ GIT_VALUED = {"-C", "-c", "--git-dir", "--work-tree", "--namespace"}
 WEB_ADDRESS = re.compile(r"^https?://", re.IGNORECASE)
 GLOB_CHARS = re.compile(r"[*?\[{]")
 # Environment variables whose name says they hold a secret, and the ways a command refers to one.
-SECRET_VARIABLE = re.compile(r"TOKEN|SECRET|PASSW|API_?KEY|ACCESS_?KEY|PRIVATE_?KEY|CREDENTIAL|(^|_)PAT$|(^|_)AUTH($|_)",
+SECRET_VARIABLE = re.compile(r"TOKEN(?!IZ)|SECRET|PASSW|API_?KEY|ACCESS_?KEY|PRIVATE_?KEY|CREDENTIAL|(^|_)PAT$|(^|_)AUTH($|_)",
                              re.IGNORECASE)
-VARIABLE_REFERENCE = re.compile(r"\$(?:env:)?\{?([A-Za-z_][A-Za-z0-9_]*)", re.IGNORECASE)
+VARIABLE_REFERENCE = re.compile(r"\$(?:env:)?\{?([A-Za-z_][A-Za-z0-9_]*)|%([A-Za-z_][A-Za-z0-9_]*)%", re.IGNORECASE)
 PRINTERS = {"echo", "printf", "print", "write-host", "write-output", "echo.", "say"}
 DUMPERS = {"export", "declare", "typeset", "set"}
 ENVIRONMENT_FILE = re.compile(r"/proc/[^/\s]+/environ")
@@ -83,8 +84,9 @@ def secret_kind(word, names):
     candidates = [word]
     if "\\" in word:
         candidates.append(word.replace("\\", "/"))
-    for sep in ("=", ":", "@"):
-        candidates += [part for c in list(candidates) if sep in c for part in c.split(sep)]
+    if not any(c.isspace() for c in word):  # `--file=.env`, `host:.env`, `@.env`; prose with spaces has no such parts
+        for sep in ("=", ":", "@"):
+            candidates += [part for c in list(candidates) if sep in c for part in c.split(sep)]
     for c in list(candidates):
         glob = GLOB_CHARS.search(c)
         if glob and glob.start() > 0:
@@ -185,18 +187,27 @@ def harmless(program, args, i, names):
         return True, False
     if low in KEY_USERS and before == "-i":
         return True, False
+    if low == "ssh-add" or (low == "ssh-keygen" and before == "-f" and "-y" not in args):
+        return True, False  # the agent loads the key; keygen creates it or prints its fingerprint
+    if word.startswith("--from-env-file=") or before == "--from-env-file":
+        return True, False
     if low == "git":
         sub = git_subcommand(args)
         if sub in GIT_NAME_ONLY or (sub == "rm" and "--cached" in args):
             return True, True
+        if sub in GIT_WRITES and "-p" not in args and "--patch" not in args:
+            return True, False
         return before in ("-m", "--message") and sub in ("commit", "tag", "merge", "stash"), False
     if prompt_taker(low, args, i) and any(c.isspace() for c in word):
         return True, False  # prose handed to an agent CLI as its prompt: nothing reads the file it mentions
     if low == "find":
         return not FIND_RUNS.intersection(args), True
     if low in GREPS:
-        if word.startswith(("--include=", "--exclude=", "--exclude-dir=", "--glob=")) or before in ("-g", "--glob"):
+        if word.startswith(("--exclude=", "--exclude-dir=")):
             return True, False
+        if word.startswith(("--include=", "--glob=")) or before in ("-g", "--glob", "--include"):
+            # a glob that picks secret files searches inside them; rg's `!glob` leaves them out
+            return word.rpartition("=")[2].lstrip("'\"").startswith("!"), False
         return grep_pattern_index(args) == i, False
     if low in ("select-string", "sls"):
         return before.lower() == "-pattern" or (not before.startswith("-") and i == 0), False
@@ -244,7 +255,7 @@ def environment_dump(segment, program, args):
     if not program and "env" in segment:
         return "bare `env` prints every environment variable"
     if low == "printenv":
-        if not args:
+        if all(a.startswith("-") for a in args):
             return "bare `printenv` prints every environment variable"
         secret = next((a for a in args if SECRET_VARIABLE.search(a)), None)
         if secret:
@@ -252,15 +263,15 @@ def environment_dump(segment, program, args):
     # `set` prints every variable only when bare: `set -x` and `set -euo pipefail` are shell options.
     if low in DUMPERS and (not args if low == "set" else all(a in ("-p", "-x", "-px", "-xp") for a in args)):
         return f"`{program}` without a variable name prints every variable"
-    if low in ("get-childitem", "gci", "dir", "ls", "get-item", "gi"):
-        for a in args:
-            if a.lower().startswith("env:") and (a[4:] in ("", "/", "*") or SECRET_VARIABLE.search(a[4:])):
-                return "listing `env:` prints environment variables"
+    for a in args:  # PowerShell's env: drive, whatever reads it (Get-ChildItem, Get-Content, cat, type)
+        if a.lower().startswith("env:") and (a[4:] in ("", "/", "*") or SECRET_VARIABLE.search(a[4:])):
+            return "reading `env:` prints environment variables"
     if any(ENVIRONMENT_FILE.search(w) for w in [program] + args):
         return "`/proc/*/environ` holds a process's environment"
     if low in PRINTERS or (program.lower().startswith("$env:") and not args):
         for word in ([program] if low not in PRINTERS else args):
-            for name in VARIABLE_REFERENCE.findall(word):
+            for dollar, percent in VARIABLE_REFERENCE.findall(word):
+                name = dollar or percent
                 if SECRET_VARIABLE.search(name):
                     return f"printing `${name}` shows a secret variable"
     return None
@@ -352,7 +363,8 @@ def verdict(command, names=None, depth=0):
         for i, word in enumerate(args):
             runner = nested_code(program, args, i)
             if runner:
-                found = check_code(runner, word, names, depth)
+                # cmd takes every word after /c as its command line; the others take one word of code
+                found = check_code(runner, " ".join(args[i:]) if runner == "cmd" else word, names, depth)
                 if found:
                     return found
                 continue

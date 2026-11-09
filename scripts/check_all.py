@@ -13,7 +13,7 @@ Runs, on every core:
     file count, the README's coverage of options and commands, and the cross-references of skills.
 
 --clean-clone clones HEAD into a temporary folder and runs the gate there, so nothing leans on an untracked file.
-Exit 0 when everything passed, 1 otherwise. Python 3.10+, standard library only.
+Exit 0 when everything passed, 1 otherwise. Python 3.9+, standard library only.
 """
 import argparse
 import concurrent.futures
@@ -35,7 +35,7 @@ IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 EXECUTABLE = ("scripts/run-hook.cmd", "plugins/*/hooks/*.cmd", "plugins/*/bin/*")
 # Hyphenated words that open a code span in a document and are not commands of the plugin: the cross-reference check
 # takes any other such word for a bin/ command, so a renamed or missing tool is caught.
-NOT_COMMANDS = {"general-purpose", "no-new-privileges", "opt-level", "swift-test", "reviewing-migrations",
+NOT_COMMANDS = {"general-purpose", "no-new-privileges", "opt-level", "swift-test", "reviewing-migrations", "ssh-add",
                 "running-benchmarks"}
 PLAIN_SCALAR_TRAPS = (": ", " #")
 RESERVED_STARTS = tuple("[{&*!|>%@`\"'")

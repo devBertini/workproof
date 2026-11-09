@@ -6,7 +6,7 @@
 Each call runs `sh -c '"<plugin>/hooks/run-hook.cmd" secret_guard.py'` (Git Bash on Windows) with a hook JSON on
 stdin, so the time includes the shell, the launcher and the Python start. Half of the calls are allowed commands and
 half are blocked ones. Prints the median, 95th percentile and maximum in milliseconds.
-Python 3.10+, standard library only.
+Python 3.9+, standard library only.
 """
 import json
 import os

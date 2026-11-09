@@ -10,6 +10,7 @@
   "repository": "https://github.com/devBertini/workproof",
   "documentationUrl": "https://github.com/devBertini/workproof/tree/main/plugins/workproof#readme",
   "supportUrl": "https://github.com/devBertini/workproof/issues",
+  "icon": "./.claude-plugin/icon.png",
   "license": "MIT",
   "keywords": [
     "security",

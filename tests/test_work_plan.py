@@ -20,8 +20,7 @@ import work_plan as wp  # noqa: E402
 
 PLUGIN = os.path.dirname(HERE)
 PY = sys.executable
-CLEAN_ENV = ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID", wp.ROOT_ENV, wp.ROOT_OPTION_ENV, wp.SILENT_ENV,
-             wp.OLD_ROOT_ENV, wp.OLD_SILENT_ENV)
+CLEAN_ENV = ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID", wp.ROOT_ENV, wp.ROOT_OPTION_ENV, wp.SILENT_ENV)
 
 
 def isolate(case):
@@ -201,17 +200,6 @@ class Plan(unittest.TestCase):
         self.run_plan("add", "--title", "audit", "--done-when", "seal")
         os.environ[wp.SILENT_ENV] = "1"
         self.assertEqual(with_stdin(json.dumps({"source": "startup", "cwd": self.project}), ["hook"], root=self.root), "")
-
-    def test_the_names_from_before_the_rename_still_work(self):
-        repo = make_repo(os.path.join(self.root, "legacy"))
-        with chdir(repo), contextlib.redirect_stdout(io.StringIO()):
-            wp.main(["new", "--goal", "g"], root=None)
-        os.environ[wp.OLD_ROOT_ENV] = self.root
-        self.assertEqual(wp.plans_root(), os.path.normpath(self.root))
-        os.environ[wp.ROOT_ENV] = repo
-        self.assertEqual(wp.plans_root(), os.path.normpath(repo), "the current name wins over the old one")
-        os.environ[wp.OLD_SILENT_ENV] = "1"
-        self.assertEqual(with_stdin(json.dumps({"cwd": repo}), ["hook"], root=None), "")
 
     def test_the_hook_is_silent_with_no_plan(self):
         empty = os.path.join(self.root, "empty")

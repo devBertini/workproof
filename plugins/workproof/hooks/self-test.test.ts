@@ -24,24 +24,26 @@ describe('diagnose', () => {
   test('no Python names the install and the way to keep working', async () => {
     const text = diagnose(POSIX, { exitCode: 1, stdout: '', stderr: 'run-hook: no Python 3 found on PATH, tried python3 and python\n' })
     expect(text).toContain('no Python 3 on PATH')
-    expect(text).toContain('Install Python 3.10 or later')
+    expect(text).toContain('Install Python 3.9 or later')
     expect(text).toContain('blocks every shell command and file read')
-    expect(text).toContain('secret_guard off in /config')
+    expect(text).toContain('claude plugin disable workproof')
+    expect(text).not.toContain('secret_guard off')
     expect(text).toContain('workproof-doctor')
   })
 
   test('an old Python, a lost executable bit and an unknown failure each get their fix', async () => {
-    expect(diagnose(POSIX, { exitCode: 1, stdout: '', stderr: 'workproof self-test: Python 3.8 is too old, the hooks need 3.10 or later\n' }))
-      .toContain('(Python 3.8 is too old, the hooks need 3.10 or later)')
+    expect(diagnose(POSIX, { exitCode: 1, stdout: '', stderr: 'workproof self-test: Python 3.8 is too old, the hooks need 3.9 or later\n' }))
+      .toContain('(Python 3.8 is too old, the hooks need 3.9 or later)')
     expect(diagnose(POSIX, { exitCode: 126, stdout: '', stderr: `sh: 1: ${POSIX}/hooks/run-hook.cmd: Permission denied\n` }))
       .toContain(`chmod +x "${POSIX}/hooks/run-hook.cmd"`)
     expect(diagnose(POSIX, { exitCode: 3, stdout: '', stderr: '' })).toContain('the launcher exited 3')
+    expect(diagnose(WIN, { exitCode: 9009, stdout: '', stderr: 'Python was not found; run without arguments to install from the Microsoft Store' }))
+      .toContain('no Python 3 on PATH')
   })
 
-  test('a shell that cannot start means Git for Windows on Windows', async () => {
-    expect(diagnose(WIN, { failed: 'ENOENT' })).toContain('Install Git for Windows')
-    expect(diagnose(POSIX, { failed: 'ENOENT' })).toContain('Put `sh` on PATH')
-    expect(diagnose(WIN, { failed: 'HooksError: $.process.run: timed out after 20000 ms' })).toBeUndefined()
+  test('a shell this module cannot find is no proof the hooks fail: it says nothing', async () => {
+    expect(diagnose(WIN, { failed: 'ENOENT' })).toBeUndefined()
+    expect(diagnose(POSIX, { failed: 'ENOENT' })).toBeUndefined()
   })
 })
 

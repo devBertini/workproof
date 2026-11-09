@@ -2,6 +2,8 @@
 // shell), and when it cannot start says why and what fixes it. The secret guard fails closed, so a launcher that
 // cannot start blocks every shell command and file read: without this line the person sees only "hook error".
 // It never blocks or delays the session: it runs after the session started and its own failure is silent.
+// The plugin's options cannot help then (the hooks read them in Python, which never starts): the way to keep
+// working is to disable the plugin until the cause is fixed.
 import type { EngineInterface } from 'claude-code'
 
 const GIT_BASH = 'C:\\Program Files\\Git\\bin\\bash.exe'
@@ -24,34 +26,34 @@ export function lineOf(root: string): string {
   return `"${root.replaceAll('\\', '/')}/hooks/run-hook.cmd" modules.py --self-test`
 }
 
-// What to tell the person, or undefined when the launcher started and Python is new enough.
+// What to tell the person, or undefined when the launcher started and Python is new enough, or when the test
+// could not tell (a shell this module does not know where to find, a slow start).
 export function diagnose(root: string, outcome: Outcome): string | undefined {
   if ('exitCode' in outcome && outcome.exitCode === 0) return undefined
-  const off = 'To work meanwhile, turn the option secret_guard off in /config. `workproof-doctor` runs every check.'
+  if ('failed' in outcome) {
+    // No shell at the places this module knows: on Windows, Git may be installed elsewhere and found by Claude
+    // Code itself, so this is no proof that the hooks fail. `workproof-doctor` checks it properly.
+    return undefined
+  }
+  const out = 'To work meanwhile, disable the plugin (`claude plugin disable workproof` in a terminal, or `/plugin`); its options cannot switch off a hook that does not start. `workproof-doctor` runs every check.'
   const blocked = 'Until it is fixed the secret guard blocks every shell command and file read.'
+  const detail = (outcome.stderr.trim() || outcome.stdout.trim()).split('\n').pop() ?? ''
   let cause: string
   let fix: string
-  if ('failed' in outcome && /timed? ?out|still running/i.test(outcome.failed)) return undefined // slow, not broken
-  if ('failed' in outcome) {
-    cause = isWindows(root) ? 'Git Bash was not found' : `the shell could not start (${outcome.failed})`
-    fix = isWindows(root) ? 'Install Git for Windows and restart Claude Code.' : 'Put `sh` on PATH and restart Claude Code.'
+  if (/no Python 3 found|Python was not found/.test(detail) || outcome.exitCode === 9009) {
+    cause = 'no Python 3 on PATH'
+    fix = 'Install Python 3.9 or later (as python3, python or py -3; on Windows the Microsoft Store alias does not count).'
+  } else if (/too old/.test(detail)) {
+    cause = detail.replace(/^workproof self-test: /, '')
+    fix = 'Install Python 3.9 or later and put it first on PATH.'
+  } else if (/ermission denied/.test(detail)) {
+    cause = 'the launcher lost its executable bit'
+    fix = `Run: chmod +x "${root}/hooks/run-hook.cmd" "${root}"/bin/*`
   } else {
-    const detail = (outcome.stderr.trim() || outcome.stdout.trim()).split('\n').pop() ?? ''
-    if (/no Python 3 found/.test(detail)) {
-      cause = 'no Python 3 on PATH'
-      fix = 'Install Python 3.10 or later (as python3, python or py -3; on Windows the Microsoft Store alias does not count).'
-    } else if (/too old/.test(detail)) {
-      cause = detail.replace(/^workproof self-test: /, '')
-      fix = 'Install Python 3.10 or later and put it first on PATH.'
-    } else if (/ermission denied/.test(detail)) {
-      cause = 'the launcher lost its executable bit'
-      fix = `Run: chmod +x "${root}/hooks/run-hook.cmd" "${root}"/bin/*`
-    } else {
-      cause = `the launcher exited ${outcome.exitCode}${detail === '' ? '' : `: ${detail}`}`
-      fix = 'Reinstall the plugin.'
-    }
+    cause = `the launcher exited ${outcome.exitCode}${detail === '' ? '' : `: ${detail}`}`
+    fix = 'Reinstall the plugin.'
   }
-  return `workproof: its hooks cannot start (${cause}). ${blocked} ${fix} ${off}`
+  return `workproof: its hooks cannot start (${cause}). ${blocked} ${fix} ${out}`
 }
 
 async function selfTest($: EngineInterface): Promise<void> {

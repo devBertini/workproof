@@ -4,7 +4,7 @@
 Run `python -B regenerate_fixtures.py` after changing a fixture source: the static states hold the sha1
 fingerprints of the files their Entry cells cite, and `test_fixture_fingerprints_match_their_sources` fails when
 they drift. The English tree is `project_tree`; `pt_tree` holds the same Demo project as a Brazilian Portuguese
-map (docs/FLUXOS.md and its state). Python 3.10, standard library only.
+map (docs/FLUXOS.md and its state). Python 3.9, standard library only.
 """
 import hashlib
 import json

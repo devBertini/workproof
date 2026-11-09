@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python: ["3.10", "3.x"]
+        python: ["3.9", "3.x"]
     runs-on: ${{ matrix.os }}
     steps:
       # actions/checkout v7.0.1 and actions/setup-python v7.1.0, pinned by commit.

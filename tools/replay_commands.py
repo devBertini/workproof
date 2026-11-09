@@ -9,7 +9,7 @@ file_guard.verdict. The report holds counts only: commands replayed, unique comm
 and the blocks grouped by the kind of rule that fired. Commands are never written anywhere. With --show-blocked
 each blocked command is also printed to the terminal, cut to 160 characters, so a person can review it.
 --skip leaves out transcript files whose path contains the text (for example the session doing the replay).
-Python 3.10+, standard library only.
+Python 3.9+, standard library only.
 """
 import collections
 import hashlib

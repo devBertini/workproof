@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""The gate on Linux, in two containers side by side: the minimum Python (3.10) and the newest.
+"""The gate on Linux, in two containers side by side: the minimum Python (3.9) and the newest.
 
     python -B tools/check_linux.py [--keep-images]
 
@@ -10,7 +10,7 @@ path of the launcher and the bin/ tools, and that nothing leans on an untracked 
 containers, so the plugin's own tests and validation are not part of this run (the gate prints a note).
 
 The images are pinned by digest and removed afterwards unless --keep-images. Needs a running Docker engine.
-Exit 0 when both containers passed. Python 3.10+, standard library only.
+Exit 0 when both containers passed. Python 3.9+, standard library only.
 """
 import concurrent.futures
 import os
@@ -19,7 +19,7 @@ import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IMAGES = {
-    "python 3.10 (minimum)": "python:3.10-slim@sha256:6ff506466f8b1e981719b468cc0023b8ef000b983cdec0eafe119d01f379e31d",
+    "python 3.9 (minimum)": "python:3.9-slim@sha256:2d97f6910b16bd338d3060f261f53f144965f755599aab1acda1e13cf1731b1b",
     "python 3.14 (newest)": "python:3.14-slim@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f",
 }
 # Run inside the container. The hook round trip: an allowed command exits 0, a read of a secret file exits 2.

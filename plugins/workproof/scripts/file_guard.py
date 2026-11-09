@@ -9,7 +9,7 @@ blocking every folder search would stop all work. That is a limit of this guard.
 
 The names are those of secret_patterns.SECRET_NAMES plus the user's `extra_secret_names`. Same switch as the shell
 guard (the `secret_guard` option). Input: the hook JSON on stdin. Exit 0 lets the call run; exit 2 blocks it, with the
-reason on stderr for Claude. Python 3.10+, standard library only.
+reason on stderr for Claude. Python 3.9+, standard library only.
 """
 import json
 import os
@@ -42,6 +42,11 @@ def glob_kind(glob, names):
     its first wildcard (`.env*`, `config/.env.*`)."""
     for one in expand_braces(glob.strip().replace("\\", "/")):
         kind = name_kind(one, names)
+        # the file name part (`**/.env*` -> `.env*`), read up to its first wildcard
+        name = one.rsplit("/", 1)[-1]
+        wildcard = GLOB_CHARS.search(name)
+        if not kind and wildcard and wildcard.start() > 0:
+            kind = name_kind(name[:wildcard.start()].rstrip("."), names) or name_kind(name[:wildcard.start()], names)
         wildcard = GLOB_CHARS.search(one)
         if not kind and wildcard and wildcard.start() > 0:
             kind = name_kind(one[:wildcard.start()].rstrip("."), names) or name_kind(one[:wildcard.start()], names)

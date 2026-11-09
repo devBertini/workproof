@@ -10,7 +10,7 @@ extra_secret_names, when the environment carries them) or the staged content mat
 (secret_patterns.SECRET_CONTENT; every text blob is scanned whatever its size, UTF-16 and UTF-32 text included, and
 only real binary content is skipped, with a note). Otherwise it commits with the message as given. It never pushes.
 Optional commit rules (Conventional Commit line, size cap, blocked new files) apply first when the environment turns
-them on: see commit_rules.py. Exit 0 committed, 1 refused or failed. Python 3.10+, standard library only.
+them on: see commit_rules.py. Exit 0 committed, 1 refused or failed. Python 3.9+, standard library only.
 """
 import os
 import subprocess

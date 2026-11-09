@@ -1,7 +1,7 @@
 """Splitting a shell command line into words and simple commands, shared by the guard's rule sets.
 
 This is a lexer for guarding, not a shell: it follows quotes, operators, comments, line continuations and backticks
-well enough to find which program a command runs and which words it is given. Python 3.10+, standard library only.
+well enough to find which program a command runs and which words it is given. Python 3.9+, standard library only.
 """
 import os
 import re
@@ -103,7 +103,7 @@ def program_of(segment):
         elif word == "env":
             i += 1
             while i < len(segment) and (segment[i].startswith("-") or "=" in segment[i]):
-                i += 1
+                i += 2 if segment[i] in ("-u", "--unset", "-C", "--chdir") else 1  # these take a value
         else:
             name = os.path.basename(word.replace("\\", "/"))
             return (name[:-4] if name.lower().endswith(".exe") else name), segment[i + 1:]

@@ -3,12 +3,12 @@
 
     workproof-doctor
 
-Prints one line per check and what to do about a failed one: the Python that runs it (3.10 or later), the POSIX shell
+Prints one line per check and what to do about a failed one: the Python that runs it (3.9 or later), the POSIX shell
 the hooks start through, whether the hook launcher starts, the executable bits of the launcher and the bin/ tools
 (macOS and Linux), and git. It then notes the module switches and the plans root as this process sees them (Claude
 Code hands plugin options to hooks only, so a command run from the Bash tool sees the defaults unless a WORKPROOF_*
 variable is set). It reads nothing but the plugin's own files and runs nothing but the launcher and `git --version`.
-Exit 0 when every check passed, 1 otherwise. Python 3.10+ to pass, but it starts on any Python 3.
+Exit 0 when every check passed, 1 otherwise. Python 3.9+ to pass, but it starts on any Python 3.
 """
 import json
 import os
@@ -18,7 +18,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 WINDOWS = os.name == "nt"
-MINIMUM = (3, 10)
+MINIMUM = (3, 9)
 MODULES = ("secret_guard", "proof_plans", "agent_roles", "flow_map", "long_runs", "delivery", "docker", "rust",
            "ui_conventions")
 GIT_BASH = r"C:\Program Files\Git\bin\bash.exe"
@@ -73,7 +73,9 @@ def check_launcher(root, shell):
     if out.returncode == 0:
         return True, "the hook launcher starts: " + (out.stdout.strip() or "ok"), ""
     detail = (out.stderr.strip() or out.stdout.strip() or "no output").splitlines()[-1]
-    fix = "install Python 3.10 or later (python3, python or py -3 on PATH), or reinstall the plugin if Python is fine"
+    fix = "install Python 3.9 or later (python3, python or py -3 on PATH), or reinstall the plugin if Python is fine"
+    if out.returncode == 9009 or "Python was not found" in detail:
+        fix = "install Python 3.9 or later: the python on PATH is the Microsoft Store alias, which starts no interpreter"
     if "ermission denied" in detail:
         fix = 'restore the executable bit: chmod +x "%s"' % launcher
     return False, "the hook launcher fails (exit %d): %s" % (out.returncode, detail), fix
@@ -112,7 +114,7 @@ def notes(environ):
         state = "default (on)" if value is None else ("off" if value.strip().lower() in off else "on")
         seen.append("%s %s" % (key, state))
     yield "modules as this process sees them (plugin options reach hooks only): " + ", ".join(seen)
-    for name in ("WORKPROOF_PLANS_ROOT", "PROOF_PLANS_ROOT", "CLAUDE_PLUGIN_OPTION_PLANS_ROOT"):
+    for name in ("WORKPROOF_PLANS_ROOT", "CLAUDE_PLUGIN_OPTION_PLANS_ROOT"):
         value = (environ.get(name) or "").strip()
         if value:
             exists = os.path.isdir(os.path.expanduser(value))

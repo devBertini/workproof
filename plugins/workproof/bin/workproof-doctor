@@ -11,6 +11,6 @@ if command -v py >/dev/null 2>&1 && py -3 -c "" >/dev/null 2>&1; then
   exec py -3 -B "$script" "$@"
 fi
 echo "workproof-doctor: FAIL  no working Python 3 found (tried python3, python, py -3)" >&2
-echo "      fix: install Python 3.10 or later and put it on PATH; on Windows the Microsoft Store alias does not count." >&2
-echo "      Until then the secret guard blocks every shell command and file read: turn the option secret_guard off in /config to work meanwhile." >&2
+echo "      fix: install Python 3.9 or later and put it on PATH; on Windows the Microsoft Store alias does not count." >&2
+echo "      Until then the secret guard blocks every shell command and file read: to work meanwhile, disable the plugin (claude plugin disable workproof)." >&2
 exit 1

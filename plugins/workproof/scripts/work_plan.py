@@ -61,9 +61,6 @@ POINTER_DAYS = 14
 ROOT_ENV = "WORKPROOF_PLANS_ROOT"
 ROOT_OPTION_ENV = "CLAUDE_PLUGIN_OPTION_PLANS_ROOT"
 SILENT_ENV = "WORKPROOF_PLANS_SILENT"
-# The names both variables had before the plugin was renamed: still read, no longer documented.
-OLD_ROOT_ENV = "PROOF_PLANS_ROOT"
-OLD_SILENT_ENV = "PROOF_PLANS_SILENT"
 BUNDLE_TIMEOUT = 600
 WINDOWS = os.name == "nt"
 LOCK_WAIT = 30.0    # seconds a command waits for another one's lock before it gives up
@@ -83,7 +80,7 @@ AUTO = object()  # main(root=AUTO): read the plans root from the environment
 def plans_root():
     """The configured plans root, or None: WORKPROOF_PLANS_ROOT, else the plugin option Claude Code exports to hooks.
     A value that is not an existing folder counts as unset."""
-    value = (os.environ.get(ROOT_ENV) or os.environ.get(OLD_ROOT_ENV) or os.environ.get(ROOT_OPTION_ENV) or "").strip()
+    value = (os.environ.get(ROOT_ENV) or os.environ.get(ROOT_OPTION_ENV) or "").strip()
     if not value:
         return None
     value = os.path.normpath(os.path.expanduser(value))
@@ -594,7 +591,7 @@ def main(argv=None, root=AUTO):
 
     if a.command == "hook":
         data = read_hook_input()
-        if os.environ.get(SILENT_ENV) or os.environ.get(OLD_SILENT_ENV) or not module_enabled("proof_plans"):
+        if os.environ.get(SILENT_ENV) or not module_enabled("proof_plans"):
             return 0
         sweep_pointers(root, time.time())
         cwd = data.get("cwd") if isinstance(data.get("cwd"), str) and data.get("cwd") else os.getcwd()

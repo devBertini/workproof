@@ -42,7 +42,7 @@ class Hooks(unittest.TestCase):
             subprocess.run([sys.executable, "-B", os.path.join(HERE, "work_plan.py"), "new", "--goal", "demo goal",
                             "--where", project], check=True, capture_output=True)
             payload = {"hook_event_name": "SessionStart", "source": "startup", "cwd": project, "session_id": "t1"}
-            on = run("work_plan.py", payload, WORKPROOF_PLANS_ROOT="", PROOF_PLANS_ROOT="", CLAUDE_PLUGIN_OPTION_PLANS_ROOT="")
+            on = run("work_plan.py", payload, WORKPROOF_PLANS_ROOT="", CLAUDE_PLUGIN_OPTION_PLANS_ROOT="")
             self.assertEqual(on.returncode, 0, on.stderr)
             self.assertIn("demo goal", on.stdout)
             off = run("work_plan.py", payload, CLAUDE_PLUGIN_OPTION_PROOF_PLANS="false")

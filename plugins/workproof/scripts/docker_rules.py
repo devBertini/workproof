@@ -3,7 +3,7 @@
 Refused: `docker compose config` (or its older name `convert`) without `--no-interpolate` or with `--environment` (they print interpolated values or
 the environment), `docker inspect` (also `service inspect`) without a `--format` that leaves out the environment
 (`Config.Env`; `--format json` is the whole object), and `env`, `printenv`, `/proc/*/environ` or a file under
-`/run/secrets/` read inside a container (`exec`, `run`). Python 3.10+, standard library only.
+`/run/secrets/` read inside a container (`exec`, `run`). Python 3.9+, standard library only.
 """
 import os
 import re

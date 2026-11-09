@@ -39,11 +39,11 @@ def report(root, environ=None):
 class SelfTest(unittest.TestCase):
     def test_a_new_enough_python_passes_and_an_old_one_names_the_minimum(self):
         out = io.StringIO()
-        self.assertEqual(modules.self_test((3, 10, 0), out), 0)
-        self.assertIn("self-test ok: Python 3.10", out.getvalue())
+        self.assertEqual(modules.self_test((3, 9, 6), out), 0)
+        self.assertIn("self-test ok: Python 3.9", out.getvalue())
         out = io.StringIO()
-        self.assertEqual(modules.self_test((3, 9, 18), out), 1)
-        self.assertIn("Python 3.9 is too old, the hooks need 3.10 or later", out.getvalue())
+        self.assertEqual(modules.self_test((3, 8, 18), out), 1)
+        self.assertIn("Python 3.8 is too old, the hooks need 3.9 or later", out.getvalue())
 
     def test_through_the_launcher_as_a_hook_starts_it(self):
         sh = find_sh()
@@ -81,7 +81,7 @@ class Doctor(unittest.TestCase):
         code, text = report(self.root)
         self.assertEqual(code, 1, text)
         self.assertIn("FAIL  the hook launcher fails (exit 1): run-hook: no Python 3 found on PATH", text)
-        self.assertIn("fix: install Python 3.10 or later", text)
+        self.assertIn("fix: install Python 3.9 or later", text)
         self.assertIn("1 check(s) failed", text)
 
     def test_a_missing_launcher_fails(self):
@@ -100,10 +100,10 @@ class Doctor(unittest.TestCase):
         self.assertIn('chmod +x "%s"' % tool, text)
 
     def test_an_old_python_fails_its_check(self):
-        ok, what, fix = doctor.check_python((3, 9, 1))
+        ok, what, fix = doctor.check_python((3, 8, 1))
         self.assertFalse(ok)
         self.assertIn("is too old", what)
-        self.assertIn("3.10 or later", fix)
+        self.assertIn("3.9 or later", fix)
 
     def test_the_notes_show_the_modules_and_the_plans_root_this_process_sees(self):
         environ = {k: v for k, v in os.environ.items() if not k.startswith(("CLAUDE_PLUGIN_OPTION_", "WORKPROOF_", "PROOF_"))}

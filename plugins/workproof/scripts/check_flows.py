@@ -58,7 +58,7 @@ Exit codes: 0 clean; 1 a flow is broken, a batch produced no result, or --check 
 
 Every subprocess (xcodebuild, swift test, xcresulttool, simctl, git, a runner project's test commands)
 and the clock go through one runtime object, so its tests replace them.
-Python 3.10, standard library.
+Python 3.9, standard library.
 """
 
 import argparse
@@ -2472,7 +2472,8 @@ class Engine:
                 # A narrowed run keeps only the cited tests: Vitest's -t reports every test it did not select as
                 # <skipped/>, and that must overwrite no earlier result. The archive says what was selected.
                 cited = set(cases)
-                (archive / runner["name"] / NARROWED_FILE).write_text(json.dumps({"selected": sorted(cited)}, indent=1), encoding="utf-8", newline="\n")
+                with open(str(archive / runner["name"] / NARROWED_FILE), "w", encoding="utf-8", newline="\n") as handle:
+                    handle.write(json.dumps({"selected": sorted(cited)}, indent=1))
                 by_path = {key: entry for key, entry in reported.items() if key in cited}
                 runnable = {key: value for key, value in reported_runnable.items() if key in cited}
             else:
