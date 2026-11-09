@@ -53,8 +53,9 @@ describe('closedBy', () => {
 })
 
 describe('rootOf', () => {
-  test('the option wins, then PROOF_PLANS_ROOT, then none', async () => {
-    expect(rootOf('D:\\P', '/env')).toBe('D:/P')
+  test('the environment variable wins, as in work-plan, then the option, then none', async () => {
+    expect(rootOf('D:\\P', '/env')).toBe('/env')
+    expect(rootOf('D:\\P', '')).toBe('D:/P')
     expect(rootOf('', '/env')).toBe('/env')
     expect(rootOf(undefined, undefined)).toBe('')
   })

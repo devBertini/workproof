@@ -1,10 +1,15 @@
 {
   "name": "workproof",
-  "version": "0.1.0",
-  "description": "Guardrails that enforce instead of advise: a secret guard for shell, Docker and commits; per-project plans whose stages close only on a command that passes; agent roles with model limits; commit rules; a flow map kept true by its tests; and skills for delivery, Docker, Rust and button layout. Each module switches on or off in the plugin options.",
+  "displayName": "Workproof",
+  "version": "1.0.0",
+  "description": "Guardrails that enforce instead of advise: a secret guard for shell, Docker and commits; per-project plans whose stages close only on a command that passes; agent roles with model limits; commit rules; a flow map kept true by its tests; a watcher for long runs; and skills for delivery, Docker, Rust and button layout. Each module switches on or off in the plugin options.",
   "author": {
     "name": "devBertini"
   },
+  "homepage": "https://github.com/devBertini/workproof",
+  "repository": "https://github.com/devBertini/workproof",
+  "documentationUrl": "https://github.com/devBertini/workproof/tree/main/plugins/workproof#readme",
+  "supportUrl": "https://github.com/devBertini/workproof/issues",
   "license": "MIT",
   "keywords": [
     "security",

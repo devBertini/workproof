@@ -54,9 +54,9 @@ export function closedBy(command: string, stdout: string, root: string, pointer?
   return root === '' ? undefined : { plan: `${root.replace(/\/+$/, '')}/${plan}`, stage }
 }
 
-// The plans root: the plugin option, else PROOF_PLANS_ROOT, else none.
+// The plans root as work-plan reads it: the environment variable, else the plugin option, else none.
 export function rootOf(option: unknown, env: string | undefined): string {
-  const value = typeof option === 'string' && option.trim() !== '' ? option : env ?? ''
+  const value = env !== undefined && env.trim() !== '' ? env : typeof option === 'string' ? option : ''
   return value.trim().replaceAll('\\', '/')
 }
 
@@ -149,7 +149,8 @@ export const register: Register = (on, options) => {
       if (!(await compactionOn($, options.compact_on_stage_close))) return ran
       const stdout = (ran.result as { stdout?: unknown } | undefined)?.stdout
       if (typeof stdout !== 'string') return ran
-      const root = rootOf(options.plans_root, await $.env.get('PROOF_PLANS_ROOT'))
+      // PROOF_PLANS_ROOT is the variable's name from before the plugin was renamed: still read.
+      const root = rootOf(options.plans_root, (await $.env.get('WORKPROOF_PLANS_ROOT')) || (await $.env.get('PROOF_PLANS_ROOT')))
       let found = closedBy(e.command, stdout, root)
       if (found === undefined && !LABEL.test(stdout) && root !== '') {
         const pointer = await $.fs.read(`${root}/.claude/plan-sessions/${await $.session.id()}`).catch(() => undefined)

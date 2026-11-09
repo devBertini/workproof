@@ -25,7 +25,7 @@ The command runs with no lock held; the plan is reloaded afterwards, and a stage
 Every command that changes a plan holds `<plan>.lock` for its load-modify-save, and the file is written through a
 temp file of its own, so parallel commands never crash or lose each other's changes.
 
-Plans root (optional). A folder that holds many projects, named by the environment variable PROOF_PLANS_ROOT or, in a
+Plans root (optional). A folder that holds many projects, named by the environment variable WORKPROOF_PLANS_ROOT or, in a
 hook, by the plugin option `plans_root` (exported by Claude Code as CLAUDE_PLUGIN_OPTION_PLANS_ROOT). When set:
 the SessionStart hook also prints one index line for every other active plan under it (up to three folders deep);
 a plan under it is labelled by its path from it; the plan of a session started in the root folder itself lives at
@@ -35,7 +35,7 @@ id>`, the pointer the hook follows. When unset, none of that exists: the hook pr
 The hook output is capped at 9,500 characters (Claude Code keeps only 10,000 characters of a hook's output, then a
 2,000-character preview). Over that, every closed stage but the newest five folds into one `[closed]` line of ids
 before notes or index lines go. A command that changes a plan prints only the stage it touched, the open stages and
-the next one; `show` prints all. The hook prints nothing when PROOF_PLANS_SILENT is set (a headless session that must
+the next one; `show` prints all. The hook prints nothing when WORKPROOF_PLANS_SILENT is set (a headless session that must
 not take steps of a plan it does not own).
 """
 import argparse
@@ -58,9 +58,12 @@ OPEN = ("pending", "in_progress")
 CAP = 9500  # Claude Code keeps 10,000 characters of a hook's output; the rest becomes a 2,000-character preview
 POINTER_DIR = os.path.join(".claude", "plan-sessions")
 POINTER_DAYS = 14
-ROOT_ENV = "PROOF_PLANS_ROOT"
+ROOT_ENV = "WORKPROOF_PLANS_ROOT"
 ROOT_OPTION_ENV = "CLAUDE_PLUGIN_OPTION_PLANS_ROOT"
-SILENT_ENV = "PROOF_PLANS_SILENT"
+SILENT_ENV = "WORKPROOF_PLANS_SILENT"
+# The names both variables had before the plugin was renamed: still read, no longer documented.
+OLD_ROOT_ENV = "PROOF_PLANS_ROOT"
+OLD_SILENT_ENV = "PROOF_PLANS_SILENT"
 BUNDLE_TIMEOUT = 600
 WINDOWS = os.name == "nt"
 LOCK_WAIT = 30.0    # seconds a command waits for another one's lock before it gives up
@@ -78,9 +81,9 @@ AUTO = object()  # main(root=AUTO): read the plans root from the environment
 
 
 def plans_root():
-    """The configured plans root, or None: PROOF_PLANS_ROOT, else the plugin option Claude Code exports to hooks.
+    """The configured plans root, or None: WORKPROOF_PLANS_ROOT, else the plugin option Claude Code exports to hooks.
     A value that is not an existing folder counts as unset."""
-    value = (os.environ.get(ROOT_ENV) or os.environ.get(ROOT_OPTION_ENV) or "").strip()
+    value = (os.environ.get(ROOT_ENV) or os.environ.get(OLD_ROOT_ENV) or os.environ.get(ROOT_OPTION_ENV) or "").strip()
     if not value:
         return None
     value = os.path.normpath(os.path.expanduser(value))
@@ -591,7 +594,7 @@ def main(argv=None, root=AUTO):
 
     if a.command == "hook":
         data = read_hook_input()
-        if os.environ.get(SILENT_ENV) or not module_enabled("proof_plans"):
+        if os.environ.get(SILENT_ENV) or os.environ.get(OLD_SILENT_ENV) or not module_enabled("proof_plans"):
             return 0
         sweep_pointers(root, time.time())
         cwd = data.get("cwd") if isinstance(data.get("cwd"), str) and data.get("cwd") else os.getcwd()

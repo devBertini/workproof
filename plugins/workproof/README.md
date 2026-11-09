@@ -9,7 +9,7 @@ Guardrails for Claude Code that enforce instead of advise. One plugin, several m
 | Agent roles | Five agents by activity (implementer, reviewer, debugger, designer, runner) on a fitting model each; a call that asks one for a bigger model asks you first. |
 | Commit rules | Optional rules for `guarded-commit`: one Conventional Commit line, a file size cap, new files that must not be committed. |
 | Flow map | Keeps `docs/FLOWS.md` true: every user flow names its proof, and only the `check-flows` engine writes a flow's status from the tests and screenshots it cites. |
-| Long runs | Runs builds and suites over a minute in the background and wakes Claude once when they end or fail, instead of polling. |
+| Long runs | Runs builds and suites over a minute in the background; the session wakes once at the end and at most once more on trouble, instead of polling. |
 | Skills | Closing a delivery, keeping CLAUDE.md files and rules right, Docker Compose systems, Rust test loops, button layout. |
 
 A `concise` output style ships too; pick it in `/output-style` (it is never forced).
@@ -17,10 +17,60 @@ A `concise` output style ships too; pick it in `/output-style` (it is never forc
 ## Install
 
 ```
+/plugin marketplace add devBertini/workproof
 /plugin install workproof --marketplace devBertini/workproof
 ```
 
-Requires Python 3.10 or later on PATH (`python3`, `python` or `py -3`). On Windows it also requires Git for Windows: the hooks run through Git Bash, which Claude Code uses when it is installed. Without Git Bash, Claude Code falls back to PowerShell, which cannot parse the hook command, and a failing PreToolUse hook there blocks every shell call.
+## Requirements
+
+- **Claude Code**, tested on 2.1.321. The secret guard's fail-closed setting (`onFailure`) needs 2.1.295 or later: an older version runs a command when the guard cannot start. The plugin has a `bin/` folder and a hooks module, so it runs in Claude Code only, not in claude.ai or Cowork.
+- **Python 3.10 or later** on PATH as `python3`, `python` or `py -3`. Standard library only; nothing is installed.
+- **Git**, for `guarded-commit`, the flow map's `--changed` mode and stage-close compaction.
+- **Windows: Git for Windows.** The hooks run through Git Bash, which Claude Code uses when it is installed. Without it Claude Code falls back to PowerShell, which cannot parse the hook command, and the guard then blocks every shell call (see [Troubleshooting](#troubleshooting)).
+
+## Try it
+
+Three prompts that work in any git project once the plugin is on:
+
+1. `Plan adding a --json flag to our CLI in stages, and close each stage only on its test.` Claude creates `docs/ACTIVE-PLAN.json` with `work-plan`, and each stage closes through `work-plan done N --bundle -- <test command>`.
+2. `Commit my changes under src/ with guarded-commit.` Claude stages exactly those paths and the commit is refused if a token or a secret file is among them.
+3. `Run the whole test suite in the background and go on with the README meanwhile.` Claude starts the suite with its own log, calls `watch_run`, and is woken at the end or at the first failing line.
+
+And one to see the guard: ask Claude to `show me what is in .env`. The command is blocked and Claude is told why.
+
+## What it runs, reads, writes and sends
+
+**It sends nothing.** No file of the plugin opens a network connection, and nothing is collected. A command you hand to `work-plan done --bundle`, `verify-run` or a flow-map runner does whatever that command does.
+
+**What runs without being called**
+
+| When | What | Does |
+|---|---|---|
+| Session start, `/clear`, a compaction | `scripts/work_plan.py hook` | Prints the project's plan, if one exists. |
+| Before each Bash or PowerShell command | `scripts/secret_guard.py` | Reads the command text and blocks it or lets it run. It never runs the command and never opens the files it names. |
+| Before each Agent call | `scripts/agent_guard.py` | Reads the agent type and model; may ask you or refuse. |
+| In the Claude Code process | `hooks/register.ts` (hooks module) | Registers the `watch_run` tool. With `compact_on_stage_close` on, it also reads the output of Bash calls that ran `work-plan done`, runs `git status --porcelain` in the plan's repository at the end of that turn and asks Claude Code to compact. |
+
+The hooks start through `hooks/run-hook.cmd`, a launcher that finds Python. `watch_run` starts `scripts/watch_log.py`, which only reads the log you name.
+
+**What runs when Claude or you call it** (the `bin/` commands): `work-plan`, `verify-run` (runs the command you give and records its result), `guarded-commit` (runs `git add`, `git diff`, `git commit` in the repository you name), `check-flows` (runs your project's test commands, `git`, and on a Mac `xcodebuild`, `swift test` and `xcrun`), `watch-log`.
+
+**What it reads:** the hook input Claude Code sends; `docs/ACTIVE-PLAN.json` of the current project and, with a plans root, of the projects under it; the staged content of a commit made with `guarded-commit`; for the flow map, `docs/FLOWS.md`, `scripts/flows.json`, the source and test files they cite and the test reports; the log given to `watch_run`; its own `agents/*.md`. It never reads Claude Code's transcripts, settings or credentials.
+
+**What it writes**
+
+| File | Written by |
+|---|---|
+| `<project>/docs/ACTIVE-PLAN.json` (and `.lock` and a temp file beside it for milliseconds) | `work-plan` |
+| `<plans root>/.claude/ACTIVE-PLAN.json`, `<plans root>/.claude/plan-sessions/<session id>` (removed after 14 days) | `work-plan`, only when a plans root is set |
+| `<project>/docs/FLOWS.md`, `docs/.flows-state.json`, and test reports under the configured results folder | `check-flows` |
+| The git index and one commit | `guarded-commit` |
+
+Nothing else: no log, no cache, nothing in your home folder or in the plugin's own folders.
+
+**Environment variables it reads:** `CLAUDE_PLUGIN_OPTION_*` (the options below, set by Claude Code), `WORKPROOF_EXTRA_SECRET_NAMES`, `WORKPROOF_PLANS_ROOT`, `WORKPROOF_PLANS_SILENT`, `WORKPROOF_COMPACT_ON_STAGE_CLOSE`, `WORKPROOF_REFUSE_INHERITING_AGENTS`, `WORKPROOF_COMMIT_*`, `CLAUDE_CODE_SESSION_ID`, `CLAUDE_CODE_GIT_BASH_PATH`, `COMSPEC`. The secret guard reads the names of variables in a command, never their values.
+
+**Context cost:** about 1,900 tokens in every session (the descriptions of 11 skills and 5 agents, from `claude plugin details`); a skill's text is loaded only when it is used. The hooks add no tokens unless they print (the plan at session start, a block's reason).
 
 ## Options
 
@@ -59,9 +109,9 @@ A command is blocked, with exit code 2 and the reason on stderr for Claude, when
 - hands such a name to an interpreter: `python -c "open('.env')"`, a heredoc fed to `python` or `node`, `bash -c '...'`, `powershell -Command`, `cmd /c`, even through nesting or behind `docker exec` and `sudo`;
 - pipes a listed secret file name into a reader: `find . -name .env | xargs cat`;
 - prints the environment: bare `env`, `printenv`, `export -p` or `set`, `Get-ChildItem env:`, `[Environment]::GetEnvironmentVariables()`, `/proc/*/environ`, or a variable whose name says it holds a secret (`echo $API_TOKEN`, `printenv GITHUB_TOKEN`, `$env:ANTHROPIC_API_KEY`);
-- runs one of the Docker leaks: `docker compose config` without `--no-interpolate` or with `--environment`, `docker inspect` or `docker service inspect` without a `--format` that leaves out `Config.Env` (`--format json` is the whole object), or `env`, `printenv`, `/proc/*/environ` and `/run/secrets/*` read inside a container.
+- runs one of the Docker leaks: `docker compose config` (or its older name `convert`) without `--no-interpolate` or with `--environment`, `docker inspect` or `docker service inspect` without a `--format` that leaves out `Config.Env` (`--format json` is the whole object), or `env`, `printenv`, `/proc/*/environ` and `/run/secrets/*` read inside a container, also behind `sh -c`.
 
-It lets through what prints nothing of a secret file: listing, testing, hashing or counting it (`ls`, `test`, `stat`, `wc`, `sha256sum`, `Test-Path`, `Get-ChildItem`), creating, writing or removing it (`touch`, `rm`, `Remove-Item`, `> .env`, `cat > .env <<'EOF'`, a copy or a rename into it), handing it to a tool that uses it without printing it (`ssh -i`, `scp -i`, `--env-file`), and naming it as a search pattern, a `--include` glob or in a commit message.
+It lets through what prints nothing of a secret file: listing, testing, hashing or counting it (`ls`, `test`, `stat`, `wc`, `sha256sum`, `Test-Path`, `Get-ChildItem`), creating, writing or removing it (`touch`, `rm`, `Remove-Item`, `> .env`, `tee .env`, `Set-Content`, `cat > .env <<'EOF'`, a copy or a rename into it), handing it to a tool that uses it without printing it (`ssh -i`, `scp -i`, `--env-file`), and naming it as a search pattern, a `--include` glob or in a commit message.
 
 Examples:
 
@@ -101,7 +151,7 @@ Otherwise it commits with the message as written. It never pushes. By default it
 
 ### Measured
 
-On one developer's local Claude Code transcripts, 41,054 Bash and PowerShell commands were replayed through the guard and every block was reviewed: 19 blocks, 11 intended (among them `env | grep` lines that would print API key values) and 8 false (0.02% of commands). The false blocks were interpreter code that only mentions a secret file name while editing a text file, and a container `env | grep` on a public image. The guard called through Git Bash and the launcher on Windows 11 takes a median of 76 ms and a p95 of 100 ms (200 calls).
+On one developer's local Claude Code transcripts, 42,532 Bash and PowerShell commands were replayed through the guard and every block was reviewed: 38 blocks, 24 intended (11 of them were tests of the guard itself; the rest were reads of `.env` files, environment dumps such as `env | grep` and Docker inspections) and 14 false (0.03% of commands). The false blocks were all interpreter code that only mentions a secret file name, mostly scripts editing a text file that contains the name. The guard called through Git Bash and the launcher on Windows 11 takes a median of 74 ms and a p95 of 78 ms (200 calls).
 
 ### Limits
 
@@ -113,7 +163,6 @@ On one developer's local Claude Code transcripts, 41,054 Bash and PowerShell com
 - It sees commands, not file contents: a secret that reaches the conversation by another route (a file tool, a copied value) is outside it.
 - A command `ssh` runs on a remote host (`ssh host "cat .env"`) is judged like a local one, since its output comes back here; a remote command run another way (a script already on the host) is outside it. A multi-word prompt given to `claude` (also behind `timeout`) is prose, not a read, so a secret file name inside it passes; the agent it starts has its own guard.
 - The guard fails closed: if its hook cannot start (no Python), crashes or passes its 10 s timeout, the command is blocked (`onFailure: "block"`, Claude Code 2.1.295 or later; older versions let the command run).
-- There is no support promise: issues are looked at monthly.
 
 ## Proof plans
 
@@ -171,7 +220,7 @@ The project is the git top-level folder of the current folder (or of `--where`);
 
 ### Configuration
 
-One optional setting, `plans_root`: a folder that holds many projects. Claude Code asks for it when you enable the plugin and exports it to the hook as `CLAUDE_PLUGIN_OPTION_PLANS_ROOT`. Commands run through the Bash tool do not receive plugin options, so for the CLI set the environment variable `PROOF_PLANS_ROOT` (it wins over the option).
+One optional setting, `plans_root`: a folder that holds many projects. Claude Code asks for it when you enable the plugin and exports it to the hook as `CLAUDE_PLUGIN_OPTION_PLANS_ROOT`. Commands run through the Bash tool do not receive plugin options, so for the CLI set the environment variable `WORKPROOF_PLANS_ROOT` (it wins over the option).
 
 With a plans root:
 
@@ -180,7 +229,7 @@ With a plans root:
 - the root folder's own plan is `<root>/.claude/ACTIVE-PLAN.json`;
 - each plan-changing command records which plan the session works on in `<root>/.claude/plan-sessions/<session id>` (pruned after 14 days), and the hook follows it.
 
-Without one, the hook prints only the current project's plan, and nothing else is written outside the project. Set `PROOF_PLANS_SILENT=1` to make the hook print nothing.
+Without one, the hook prints only the current project's plan, and nothing else is written outside the project. Set `WORKPROOF_PLANS_SILENT=1` to make the hook print nothing.
 
 ### File format
 
@@ -205,7 +254,6 @@ Status is `pending`, `in_progress`, `done` or `dropped`. Stages are only ever ma
 - `--bundle` proves that a command exited 0, not that the command tests the right thing; the done-when text is where that is decided.
 - The refusal check can refuse a harmless command whose words look dangerous (`git log --grep push`).
 - A plan label with spaces in a path outside the plans root cannot be parsed by tools that read the output of `work-plan`; they should read the file instead.
-- Plugin `bin/` commands are not installed by claude.ai; use Claude Code.
 
 ## Commit rules
 
@@ -240,7 +288,21 @@ A PreToolUse hook on the Agent tool asks you before a call runs one of them on a
 
 ## Long runs
 
-The `watch_run` tool (a hooks module) watches a background command's log and wakes Claude once: at the first fatal line, when the log stops growing, or when the command ends. `watch-log` is the same watcher as a command. The skill `running-long-commands` gives the pattern. Hooks modules run in Claude Code only.
+The `watch_run` tool (a hooks module) follows the log of a command started in the background and wakes Claude at most once: at the first fatal line, when the log stops growing, or when the log never appears. The command's own end is not a wake of the tool: the background command's completion notice already tells Claude. `watch-log` is the same watcher as a command, for the Monitor tool. The skill `running-long-commands` gives the pattern.
+
+## Troubleshooting
+
+- **Every Bash command is blocked with a hook error.** The guard could not start, and it fails closed. The message names the cause: no Python 3 on PATH (install Python 3.10 or later; on Windows the Microsoft Store alias does not count), or on Windows no Git for Windows (install it and restart Claude Code). On macOS or Linux, a launcher that lost its executable bit after a manual copy is fixed with `chmod +x <plugin>/hooks/run-hook.cmd <plugin>/bin/*`. To get your shell back at once, turn the option `secret_guard` off in `/config`.
+- **`work-plan: command not found`.** Plugin `bin/` folders are on PATH only inside Claude Code's Bash tool, while the plugin is enabled. Run `/reload-plugins`, or call the script directly: `python <plugin>/scripts/work_plan.py`.
+- **A command was blocked that reads no secret.** The reason says which rule fired. If the file name only looks like a secret (`sample.key`, a `.pem` certificate), run the command yourself in your own terminal, or ask Claude to do the step another way. Report a false block as an issue with the command; do not rename files to get around the guard.
+- **A plan does not show at session start.** The hook prints the plan of the folder the session started in (`<project>/docs/ACTIVE-PLAN.json`, the project being the git top-level). Check `proof_plans` in `/config` and that `WORKPROOF_PLANS_SILENT` is not set; `work-plan show` prints it on demand.
+- **`work_plan: ... stayed locked for 30 s`.** A `work-plan` process died holding the lock. If none is running, delete the `ACTIVE-PLAN.json.lock` file the message names (a lock older than two minutes is removed by the next command anyway).
+- **`work_plan: ... is not a readable plan`.** The JSON file was edited by hand or by a merge. Fix it (git has the last good version) or remove it and start a new plan.
+- **A stage will not close.** `done --bundle` prints why: the command's last lines when it failed, the timeout, or the refusal (`git push`, a recursive `rm`). For a proof that is not a command use `--proof`; the stage then shows as `[unverified]`.
+
+## Support
+
+Questions and bugs: [github.com/devBertini/workproof/issues](https://github.com/devBertini/workproof/issues), read at least once a month. Vulnerabilities: see `SECURITY.md` in the repository. The changes of each version are in `CHANGELOG.md`.
 
 ## License
 
