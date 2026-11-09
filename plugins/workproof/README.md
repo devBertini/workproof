@@ -298,6 +298,10 @@ A PreToolUse hook on the Agent tool asks you before a call runs one of them on a
 
 The `watch_run` tool (a hooks module) follows the log of a command started in the background and wakes Claude at most once: at the first fatal line, when the log stops growing, or when the log never appears. The command's own end is not a wake of the tool: the background command's completion notice already tells Claude. `watch-log` is the same watcher as a command, for the Monitor tool. The skill `running-long-commands` gives the pattern.
 
+## Evals
+
+The plugin ships its eval suite (`evals/`, 27 cases: two per skill, three prompts that sit between two skills, one unrelated question). Each case runs three times with the plugin and three without, and is graded on the answer. On Opus 5.5 and Sonnet 5.5 every case scores 1.0 with the plugin, and the mean gain over no plugin is +0.65 and +0.62. On Haiku 5.5, 19 of 27 cases score 1.0 (mean gain +0.43): Haiku often answers a direct question without loading a skill, so on that model the skills help less; the hooks do not depend on the model. Run it with `claude plugin eval <plugin folder>`; it bills your account.
+
 ## Troubleshooting
 
 Start with `workproof-doctor` (in Claude Code: `! workproof-doctor`, or ask Claude to run it). It checks the Python it found, the shell the hooks start through, whether the launcher starts, the executable bits and git, prints the fix for each failed check, and exits 0 only when all pass. When the hooks cannot start, the session also says so once at its start, with the cause.
