@@ -1,0 +1,24 @@
+{
+  "name": "workproof-skills",
+  "displayName": "Workproof Skills",
+  "version": "1.0.0",
+  "description": "Skills and agents from Workproof that need nothing installed: delivery closing with proof, keeping CLAUDE.md files and rules right, Docker Compose systems tested in throwaway stacks, a short Rust build and test loop, button layout per platform, and five agents by activity with model limits. Plain text: no hooks, no commands, no network.",
+  "author": {
+    "name": "devBertini"
+  },
+  "homepage": "https://github.com/devBertini/workproof",
+  "repository": "https://github.com/devBertini/workproof",
+  "documentationUrl": "https://github.com/devBertini/workproof/tree/main/plugins/workproof-skills#readme",
+  "supportUrl": "https://github.com/devBertini/workproof/issues",
+  "icon": "./.claude-plugin/icon.png",
+  "license": "MIT",
+  "keywords": [
+    "delivery",
+    "docker",
+    "rust",
+    "agents",
+    "buttons",
+    "claude-md",
+    "workflow"
+  ]
+}

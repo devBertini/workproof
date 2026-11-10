@@ -221,7 +221,8 @@ def commands(root, require_claude):
     if claude:
         for plugin in plugins(root):
             base = os.path.relpath(plugin, root).replace("\\", "/")
-            found.append((f"claude plugin test {base}", [claude, "plugin", "test", base], root))
+            if os.path.isfile(os.path.join(plugin, "hooks", "hooks.json")):  # a plugin with no hooks has no mod to test
+                found.append((f"claude plugin test {base}", [claude, "plugin", "test", base], root))
             found.append((f"claude plugin validate {base}",
                           [claude, "plugin", "validate", "--strict", "--profile", "directory", base], root))
         found.append(("claude plugin validate .", [claude, "plugin", "validate", "--strict", "."], root))

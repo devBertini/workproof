@@ -2,6 +2,7 @@
 
 ## 1.0.1
 
+- New plugin `workproof-skills` in the same marketplace (its own version 1.0.0): six skills and five agents of workproof that need nothing installed, built from the workproof sources, for Anthropic's plugin directory.
 - The README says what the session-start hook reads and that it changes nothing in Claude Code's settings, permissions, memory or instructions.
 - `.gitattributes` keeps the launcher, scripts and `bin/` wrappers byte for byte as committed (`-text`) instead of converting line endings on checkout.
 

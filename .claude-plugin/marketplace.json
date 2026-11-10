@@ -13,6 +13,12 @@
       "source": "./plugins/workproof",
       "description": "A secret guard for shell, Docker and commits; per-project plans whose stages close only on a command that passes; agent roles with model limits; commit rules; a flow map kept true by its tests; a watcher for long runs; and skills for delivery, Docker, Rust and button layout. Every module switches on or off.",
       "category": "productivity"
+    },
+    {
+      "name": "workproof-skills",
+      "source": "./plugins/workproof-skills",
+      "description": "The skills and agents of workproof that need nothing installed, as plain text: no hooks, no commands. Install this or workproof, not both.",
+      "category": "productivity"
     }
   ]
 }
