@@ -158,7 +158,7 @@ def build():
     sources = [f"skills/{s}/SKILL.md" for s in SKILLS] + [f"agents/{a}.md" for a in AGENTS]
     for rel in sources:
         with open(os.path.join(SOURCE, rel), encoding="utf-8", newline="") as f:
-            text = f.read()
+            text = f.read().replace("\r\n", "\n")  # a Windows checkout may convert line endings
         text, gates = MODULE_GATE.subn("", text)
         if rel.startswith("skills/") and gates != 1:
             raise SystemExit(f"{rel}: expected one module gate line, found {gates}")
@@ -190,6 +190,11 @@ def build():
     return out
 
 
+def lf(data):
+    """Bytes with CRLF read as LF, so a Windows checkout of the edition compares equal to what the build makes."""
+    return None if data is None else data.replace(b"\r\n", b"\n")
+
+
 def on_disk():
     found = {}
     for folder, _, files in os.walk(EDITION):
@@ -207,7 +212,7 @@ def main(argv=None):
     wanted = build()
     if args.check:
         have = on_disk()
-        diff = sorted(p for p in set(wanted) | set(have) if wanted.get(p) != have.get(p))
+        diff = sorted(p for p in set(wanted) | set(have) if lf(wanted.get(p)) != lf(have.get(p)))
         if diff:
             print("plugins/workproof-skills is out of date; run python -B tools/build_skills_edition.py:")
             for path in diff:
