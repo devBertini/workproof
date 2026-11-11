@@ -120,9 +120,11 @@ class WatchLog(unittest.TestCase):
 
     @unittest.skipIf(os.name == "nt", "Windows has no SIGTERM: terminate() ends the process at once")
     def test_sigterm_is_quiet(self):
-        self.write("x\n")
-        p = self.start()
-        time.sleep(0.3)
+        # The event line is printed only after the SIGTERM handler is set, so reading it
+        # proves the watcher is ready; a fixed sleep raced a slow interpreter start.
+        self.write("ready\n")
+        p = self.start("--events", "ready")
+        self.assertEqual(p.stdout.readline(), "ready\n")
         p.terminate()
         out, err = p.communicate(timeout=5)
         self.assertEqual((p.returncode, err), (0, ""))
