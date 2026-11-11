@@ -14,6 +14,34 @@ Guardrails for Claude Code that enforce instead of advise. One plugin, several m
 
 A `concise` output style ships too; pick it in `/output-style` (it is never forced).
 
+## What it looks like
+
+Captured output of version 1.0.1, unedited. Claude asks to run `cat .env`; the secret guard stops the call before it runs, and Claude reads the reason:
+
+```
+Blocked by workproof (secret-guard module): `cat` is given the secret file `.env` (environment file (.env)). Secrets stay out of the conversation: refer to them by path and let the tool that needs them read them. Listing, testing, creating or removing a file is allowed. If this is a false alarm, ask the user instead of working around the guard (skill workproof:guarding-secrets).
+```
+
+`docker compose config` is stopped the same way, because it prints the interpolated secrets:
+
+```
+Blocked by workproof (secret-guard module): `docker compose config` prints the interpolated secrets; add `--no-interpolate`. [...]
+```
+
+Claude tries to close a plan stage while its test fails; the stage stays open:
+
+```
+$ work-plan done 1 --result "CSV export added" --bundle -- python tests/check.py
+work_plan: the command failed (exit 1), the stage stays open:
+FAIL test_export_quotes_commas: expected 3 columns, got 4
+```
+
+Once the test passes, the same command closes the stage and keeps the evidence:
+
+```
+  [done] 1. CSV export [verified]: CSV export added (proof: verified: python tests/check.py exit 0 in 0.0 s)
+```
+
 ## Install
 
 ```

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- The README shows captured output of the secret guard blocking a call and of a plan stage refused while its test fails.
+
 ## 1.0.1
 
 - New plugin `workproof-skills` in the same marketplace (its own version 1.0.0): six skills and five agents of workproof that need nothing installed, built from the workproof sources, for Anthropic's plugin directory.
